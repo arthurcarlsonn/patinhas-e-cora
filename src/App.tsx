@@ -19,6 +19,7 @@ import VerONGs from "./pages/VerONGs";
 import VerEventos from "./pages/VerEventos";
 import VerClinicas from "./pages/VerClinicas";
 import PetDetail from "./pages/PetDetail";
+import PetEdit from "./pages/PetEdit";
 import ProductDetail from "./pages/ProductDetail";
 import OrgDetail from "./pages/OrgDetail";
 import EventDetail from "./pages/EventDetail";
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/eventos" element={<VerEventos />} />
             <Route path="/clinicas" element={<VerClinicas />} />
             <Route path="/pet/:id" element={<PetDetail />} />
+            <Route path="/pet/:id/edit" element={<PetEdit />} />
             <Route path="/produto/:id" element={<ProductDetail />} />
             <Route path="/ong/:id" element={<OrgDetail />} />
             <Route path="/evento/:id" element={<EventDetail />} />

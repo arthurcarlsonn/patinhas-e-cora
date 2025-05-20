@@ -1,19 +1,35 @@
+
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
-import { MapPin, Clock, Eye, Phone, Mail, Share2, Ruler, PawPrint, ShieldCheck, Baby, Users } from 'lucide-react';
+import { MapPin, Clock, Eye, Phone, Mail, Share2, Ruler, PawPrint, ShieldCheck, Baby, Users, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose
+} from "@/components/ui/dialog";
 
 const PetDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [pet, setPet] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUserOwner, setIsUserOwner] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchPet = async () => {
@@ -69,7 +85,13 @@ const PetDetail = () => {
             aceitaOutrosAnimais: data.accepts_other_animals,
             descricao: data.description,
             contactWhatsapp: data.contact_whatsapp,
+            user_id: data.user_id,
           });
+
+          // Check if current user is the owner of this pet
+          if (user && data.user_id === user.id) {
+            setIsUserOwner(true);
+          }
         } else {
           console.log("No pet found with ID:", id);
           toast({
@@ -86,7 +108,45 @@ const PetDetail = () => {
     };
     
     fetchPet();
-  }, [id, toast]);
+  }, [id, toast, user]);
+
+  const handleEdit = () => {
+    navigate(`/pet/${id}/edit`);
+  };
+
+  const handleDelete = async () => {
+    if (!id || !user || !isUserOwner) return;
+    
+    try {
+      setIsDeleting(true);
+      
+      const { error } = await supabase
+        .from('pets')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Pet removido",
+        description: "O pet foi removido com sucesso",
+      });
+      
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Erro ao remover pet:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Ocorreu um erro ao remover o pet",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -164,6 +224,54 @@ const PetDetail = () => {
                   <h1 className="text-3xl font-bold text-gray-800">{pet.name}</h1>
                   <Badge variant="outline">{pet.type}</Badge>
                 </div>
+                
+                {/* Owner Actions */}
+                {isUserOwner && (
+                  <div className="mt-4 flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center"
+                      onClick={handleEdit}
+                    >
+                      <Edit size={16} className="mr-2" />
+                      Editar
+                    </Button>
+                    
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="flex items-center"
+                        >
+                          <Trash2 size={16} className="mr-2" />
+                          Excluir
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Confirmar exclusão</DialogTitle>
+                          <DialogDescription>
+                            Tem certeza que deseja excluir este pet? Esta ação não pode ser desfeita.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="flex space-x-2 justify-end">
+                          <DialogClose asChild>
+                            <Button variant="outline">Cancelar</Button>
+                          </DialogClose>
+                          <Button 
+                            variant="destructive" 
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                          >
+                            {isDeleting ? "Excluindo..." : "Sim, excluir"}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                )}
                 
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center text-gray-600">
