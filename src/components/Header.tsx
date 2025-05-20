@@ -1,9 +1,24 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 const Header = () => {
+  // Simula status de autenticação (em produção viria de um contexto de auth)
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // Simula usuário logado (em produção viria de um contexto de auth)
+  const user = {
+    name: 'Usuário',
+    avatar: 'https://github.com/shadcn.png'
+  };
+
+  // Toggle para simular login/logout (remover em produção)
+  const toggleAuth = () => {
+    setIsAuthenticated(!isAuthenticated);
+  };
+
   return (
     <header className="bg-white shadow-sm py-4">
       <div className="container mx-auto px-4 flex items-center justify-between">
@@ -39,11 +54,30 @@ const Header = () => {
               Anunciar
             </Button>
           </Link>
-          <Link to="/entrar">
-            <Button variant="outline" className="border-pet-purple text-pet-purple hover:bg-pet-purple hover:text-white font-medium rounded-full">
-              Entrar
-            </Button>
-          </Link>
+          
+          {isAuthenticated ? (
+            <div className="flex items-center space-x-4">
+              <Link to="/dashboard">
+                <Avatar className="cursor-pointer">
+                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+              </Link>
+              <Button variant="outline" onClick={toggleAuth} className="border-pet-purple text-pet-purple hover:bg-pet-purple hover:text-white font-medium rounded-full">
+                Sair
+              </Button>
+            </div>
+          ) : (
+            <Link to="/entrar">
+              <Button 
+                variant="outline" 
+                onClick={toggleAuth} 
+                className="border-pet-purple text-pet-purple hover:bg-pet-purple hover:text-white font-medium rounded-full"
+              >
+                Entrar
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </header>

@@ -16,6 +16,12 @@ import VerProdutos from "./pages/VerProdutos";
 import VerONGs from "./pages/VerONGs";
 import VerEventos from "./pages/VerEventos";
 import VerClinicas from "./pages/VerClinicas";
+import PetDetail from "./pages/PetDetail";
+import ProductDetail from "./pages/ProductDetail";
+import OrgDetail from "./pages/OrgDetail";
+import EventDetail from "./pages/EventDetail";
+import ClinicDetail from "./pages/ClinicDetail";
+import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +45,12 @@ const App = () => (
           <Route path="/ongs" element={<VerONGs />} />
           <Route path="/eventos" element={<VerEventos />} />
           <Route path="/clinicas" element={<VerClinicas />} />
+          <Route path="/pet/:id" element={<PetDetail />} />
+          <Route path="/produto/:id" element={<ProductDetail />} />
+          <Route path="/ong/:id" element={<OrgDetail />} />
+          <Route path="/evento/:id" element={<EventDetail />} />
+          <Route path="/clinica/:id" element={<ClinicDetail />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
