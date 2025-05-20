@@ -37,7 +37,7 @@ const ProductList = ({
       try {
         let query = supabase
           .from('products')
-          .select('*')
+          .select('*, profiles(name)')
           .order('created_at', { ascending: false })
           .limit(limit);
 
@@ -58,12 +58,13 @@ const ProductList = ({
             id: product.id,
             title: product.title,
             image: product.main_image_url || `https://via.placeholder.com/300x200?text=Produto`,
-            price: product.price,
+            price: Number(product.price),
             category: product.category,
             location: product.location,
+            views: product.views || 0, // Adicionando a propriedade views
             business: {
               id: product.user_id,
-              name: 'Loja Pet', // Este nome seria buscado da tabela de empresas em um caso real
+              name: product.profiles?.name || 'Usuário',
               verified: true
             },
             homeDelivery: product.home_delivery || false

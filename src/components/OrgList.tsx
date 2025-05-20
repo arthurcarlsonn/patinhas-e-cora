@@ -60,7 +60,9 @@ const OrgList = ({
             image: org.main_image_url || `https://via.placeholder.com/300x200?text=ONG`,
             location: org.location,
             type: org.type,
+            category: org.action_area, // Mapeando action_area para category
             actionAreas: [org.action_area],
+            views: org.views || 0, // Garantindo que views esteja presente
             contactInfo: {
               whatsapp: org.whatsapp,
               email: org.email,
