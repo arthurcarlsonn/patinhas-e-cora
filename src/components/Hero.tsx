@@ -47,7 +47,7 @@ const Hero = () => {
               Ajudamos a encontrar pets perdidos e a dar um lar para aqueles que precisam de uma família.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link to="/cadastrar-pet">
+              <Link to="/anunciar">
                 <Button 
                   style={{
                     animationDelay: "0.4s"
