@@ -9,6 +9,19 @@ const Header = () => {
   const { user, signOut, userType } = useAuth();
   const isAuthenticated = !!user;
   
+  const getDashboardLink = () => {
+    switch(userType) {
+      case 'personal':
+        return '/dashboard';
+      case 'company':
+        return '/empresa/dashboard';
+      case 'ngo':
+        return '/ong/dashboard';
+      default:
+        return '/dashboard';
+    }
+  };
+  
   return (
     <header className="bg-white shadow-sm py-4">
       <div className="container mx-auto px-4 flex items-center justify-between">
@@ -47,7 +60,7 @@ const Header = () => {
           
           {isAuthenticated ? (
             <div className="flex items-center space-x-4">
-              <Link to={userType === 'company' ? '/empresa/dashboard' : '/dashboard'}>
+              <Link to={getDashboardLink()}>
                 <Avatar className="cursor-pointer">
                   <AvatarImage src="https://github.com/shadcn.png" alt={user.email || ''} />
                   <AvatarFallback>{user.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>

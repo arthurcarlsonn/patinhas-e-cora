@@ -13,6 +13,7 @@ import BuscarPets from "./pages/BuscarPets";
 import Entrar from "./pages/Entrar";
 import Empresas from "./pages/Empresas";
 import EmpresaDashboard from "./pages/EmpresaDashboard";
+import OngDashboard from "./pages/OngDashboard";
 import VerPets from "./pages/VerPets";
 import VerProdutos from "./pages/VerProdutos";
 import VerONGs from "./pages/VerONGs";
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/entrar" element={<Entrar />} />
             <Route path="/empresas" element={<Empresas />} />
             <Route path="/empresa/dashboard" element={<EmpresaDashboard />} />
+            <Route path="/ong/dashboard" element={<OngDashboard />} />
             <Route path="/pets" element={<VerPets />} />
             <Route path="/produtos" element={<VerProdutos />} />
             <Route path="/ongs" element={<VerONGs />} />

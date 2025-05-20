@@ -123,6 +123,56 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          category: string
+          created_at: string
+          date: string
+          description: string
+          id: string
+          location: string
+          main_image_url: string | null
+          organization_id: string
+          title: string
+          updated_at: string
+          views: number | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          date: string
+          description: string
+          id?: string
+          location: string
+          main_image_url?: string | null
+          organization_id: string
+          title: string
+          updated_at?: string
+          views?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          location?: string
+          main_image_url?: string | null
+          organization_id?: string
+          title?: string
+          updated_at?: string
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_images: {
         Row: {
           created_at: string

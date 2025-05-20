@@ -8,8 +8,8 @@ import { useNavigate } from 'react-router-dom';
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  userType: 'personal' | 'company' | null;
-  signUp: (email: string, password: string, type: 'personal' | 'company', metadata: object) => Promise<void>;
+  userType: 'personal' | 'company' | 'ngo' | null;
+  signUp: (email: string, password: string, type: 'personal' | 'company' | 'ngo', metadata: object) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   loading: boolean;
@@ -20,7 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [userType, setUserType] = useState<'personal' | 'company' | null>(null);
+  const [userType, setUserType] = useState<'personal' | 'company' | 'ngo' | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          const userType = session.user.user_metadata.type as 'personal' | 'company' | null;
+          const userType = session.user.user_metadata.type as 'personal' | 'company' | 'ngo' | null;
           setUserType(userType);
           
           // Redireciona com base no tipo de usuário
@@ -41,6 +41,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             navigate('/dashboard');
           } else if (userType === 'company' && window.location.pathname === '/empresas') {
             navigate('/empresa/dashboard');
+          } else if (userType === 'ngo' && window.location.pathname === '/entrar') {
+            navigate('/ong/dashboard');
           }
         } else {
           setUserType(null);
@@ -54,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        const userType = session.user.user_metadata.type as 'personal' | 'company' | null;
+        const userType = session.user.user_metadata.type as 'personal' | 'company' | 'ngo' | null;
         setUserType(userType);
       }
       
@@ -69,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (
     email: string,
     password: string,
-    type: 'personal' | 'company',
+    type: 'personal' | 'company' | 'ngo',
     metadata: object
   ) => {
     setLoading(true);
@@ -109,12 +111,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) throw error;
+      
+      // Definir tipo de usuário no localStorage para acesso fácil em outros componentes
+      if (data.user) {
+        const userType = data.user.user_metadata.type as 'personal' | 'company' | 'ngo';
+        
+        if (userType === 'personal') {
+          localStorage.setItem('userLoggedIn', 'true');
+          localStorage.removeItem('businessUserLoggedIn');
+          localStorage.removeItem('ngoUserLoggedIn');
+        } else if (userType === 'company') {
+          localStorage.setItem('businessUserLoggedIn', 'true');
+          localStorage.removeItem('userLoggedIn');
+          localStorage.removeItem('ngoUserLoggedIn');
+        } else if (userType === 'ngo') {
+          localStorage.setItem('ngoUserLoggedIn', 'true');
+          localStorage.removeItem('userLoggedIn');
+          localStorage.removeItem('businessUserLoggedIn');
+        }
+      }
       
       toast({
         title: "Login realizado com sucesso",
@@ -143,6 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Limpa os dados do localStorage
       localStorage.removeItem('userLoggedIn');
       localStorage.removeItem('businessUserLoggedIn');
+      localStorage.removeItem('ngoUserLoggedIn');
       
       // Redireciona para a página inicial
       navigate('/');

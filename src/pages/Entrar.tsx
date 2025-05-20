@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogIn, User, Building } from 'lucide-react';
+import { LogIn, User, Building, Heart } from 'lucide-react';
 
 const Entrar = () => {
   const { signIn, signUp, user, loading } = useAuth();
@@ -26,11 +26,18 @@ const Entrar = () => {
   const [registerPassword, setRegisterPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [userType, setUserType] = useState('personal'); // 'personal', 'company', 'ngo'
 
   // Redirecionar se já estiver logado
   useEffect(() => {
     if (user) {
-      navigate('/dashboard');
+      if (user.user_metadata.type === 'ngo') {
+        navigate('/ong/dashboard');
+      } else if (user.user_metadata.type === 'company') {
+        navigate('/empresa/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     }
   }, [user, navigate]);
 
@@ -55,7 +62,7 @@ const Entrar = () => {
     await signUp(
       registerEmail,
       registerPassword,
-      'personal',
+      userType as 'personal' | 'company' | 'ngo',
       { name }
     );
   };
@@ -168,6 +175,40 @@ const Entrar = () => {
                         onChange={(e) => setConfirmPassword(e.target.value)}
                       />
                     </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Tipo de cadastro</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button 
+                          type="button"
+                          variant={userType === 'personal' ? 'default' : 'outline'}
+                          className={userType === 'personal' ? "bg-pet-purple hover:bg-pet-lightPurple" : ""}
+                          onClick={() => setUserType('personal')}
+                        >
+                          <User className="mr-2 h-4 w-4" />
+                          Pessoal
+                        </Button>
+                        <Button 
+                          type="button"
+                          variant={userType === 'company' ? 'default' : 'outline'}
+                          className={userType === 'company' ? "bg-pet-purple hover:bg-pet-lightPurple" : ""}
+                          onClick={() => setUserType('company')}
+                        >
+                          <Building className="mr-2 h-4 w-4" />
+                          Empresa
+                        </Button>
+                        <Button 
+                          type="button"
+                          variant={userType === 'ngo' ? 'default' : 'outline'}
+                          className={userType === 'ngo' ? "bg-pet-purple hover:bg-pet-lightPurple" : ""}
+                          onClick={() => setUserType('ngo')}
+                        >
+                          <Heart className="mr-2 h-4 w-4" />
+                          ONG/Voluntário
+                        </Button>
+                      </div>
+                    </div>
+                    
                     <div className="flex items-center space-x-2">
                       <Checkbox 
                         id="terms" 
@@ -227,13 +268,6 @@ const Entrar = () => {
                     </svg>
                     Facebook
                   </Button>
-                </div>
-                
-                <div className="text-center mt-4">
-                  <Link to="/empresas" className="flex items-center justify-center text-sm text-pet-purple hover:underline">
-                    <Building className="h-4 w-4 mr-1" />
-                    Acesso para Empresas
-                  </Link>
                 </div>
               </CardFooter>
             </Tabs>
