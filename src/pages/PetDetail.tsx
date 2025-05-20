@@ -1,34 +1,23 @@
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
-import { MapPin, Clock, Eye, Phone, Mail, Share2, Ruler, PawPrint, ShieldCheck, Baby, Users, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose
-} from "@/components/ui/dialog";
+import PetImage, { statusLabels } from '@/components/pet-detail/PetImage';
+import PetDetails from '@/components/pet-detail/PetDetails';
+import PetContact from '@/components/pet-detail/PetContact';
+import OwnerActions from '@/components/pet-detail/OwnerActions';
+import PetLoading from '@/components/pet-detail/PetLoading';
 
 const PetDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [pet, setPet] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUserOwner, setIsUserOwner] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
   const { user } = useAuth();
 
   useEffect(() => {
@@ -110,86 +99,18 @@ const PetDetail = () => {
     fetchPet();
   }, [id, toast, user]);
 
-  const handleEdit = () => {
-    navigate(`/pet/${id}/edit`);
-  };
+  // Handle loading and not found states
+  const petLoading = (
+    <PetLoading 
+      isLoading={isLoading} 
+      petExists={!!pet} 
+      goBack={() => window.history.back()}
+    />
+  );
 
-  const handleDelete = async () => {
-    if (!id || !user || !isUserOwner) return;
-    
-    try {
-      setIsDeleting(true);
-      
-      const { error } = await supabase
-        .from('pets')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-      
-      if (error) {
-        throw error;
-      }
-      
-      toast({
-        title: "Pet removido",
-        description: "O pet foi removido com sucesso",
-      });
-      
-      navigate('/dashboard');
-    } catch (error: any) {
-      console.error('Erro ao remover pet:', error);
-      toast({
-        title: "Erro",
-        description: error.message || "Ocorreu um erro ao remover o pet",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pet-purple mx-auto"></div>
-            <p className="mt-4 text-gray-600">Carregando informações do pet...</p>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
+  if (isLoading || !pet) {
+    return petLoading;
   }
-
-  if (!pet) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-800">Pet não encontrado</h1>
-            <p className="mt-2 text-gray-600">O pet que você está procurando não existe ou foi removido.</p>
-            <Button className="mt-4" variant="purple" onClick={() => window.history.back()}>Voltar</Button>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  const statusColors = {
-    perdido: 'bg-red-100 text-red-800 border-red-200',
-    encontrado: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    adocao: 'bg-green-100 text-green-800 border-green-200',
-  };
-  
-  const statusLabels = {
-    perdido: 'Perdido',
-    encontrado: 'Encontrado',
-    adocao: 'Para Adoção',
-  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -200,228 +121,29 @@ const PetDetail = () => {
             <div className="md:flex">
               {/* Imagem */}
               <div className="md:w-1/2">
-                <div className="h-64 md:h-full bg-gray-300 relative">
-                  <img
-                    src={pet.image}
-                    alt={pet.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = `https://via.placeholder.com/600x400?text=${pet.name}`;
-                    }}
-                  />
-                  <Badge 
-                    className={`absolute top-4 right-4 ${statusColors[pet.status as keyof typeof statusColors]} border`}
-                  >
-                    {statusLabels[pet.status as keyof typeof statusLabels]}
-                  </Badge>
-                </div>
+                <PetImage 
+                  image={pet.image} 
+                  name={pet.name} 
+                  status={pet.status} 
+                />
               </div>
               
               {/* Informações */}
               <div className="md:w-1/2 p-6">
-                <div className="flex justify-between items-start">
-                  <h1 className="text-3xl font-bold text-gray-800">{pet.name}</h1>
-                  <Badge variant="outline">{pet.type}</Badge>
-                </div>
+                <PetDetails pet={pet} />
                 
                 {/* Owner Actions */}
                 {isUserOwner && (
-                  <div className="mt-4 flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center"
-                      onClick={handleEdit}
-                    >
-                      <Edit size={16} className="mr-2" />
-                      Editar
-                    </Button>
-                    
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="flex items-center"
-                        >
-                          <Trash2 size={16} className="mr-2" />
-                          Excluir
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Confirmar exclusão</DialogTitle>
-                          <DialogDescription>
-                            Tem certeza que deseja excluir este pet? Esta ação não pode ser desfeita.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter className="flex space-x-2 justify-end">
-                          <DialogClose asChild>
-                            <Button variant="outline">Cancelar</Button>
-                          </DialogClose>
-                          <Button 
-                            variant="destructive" 
-                            onClick={handleDelete}
-                            disabled={isDeleting}
-                          >
-                            {isDeleting ? "Excluindo..." : "Sim, excluir"}
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                )}
-                
-                <div className="mt-4 space-y-3">
-                  <div className="flex items-center text-gray-600">
-                    <MapPin size={18} className="mr-2" />
-                    <span>{pet.location}</span>
-                  </div>
-                  
-                  <div className="flex items-center text-gray-600">
-                    <Clock size={18} className="mr-2" />
-                    <span>{pet.timeRegistered}</span>
-                  </div>
-                  
-                  <div className="flex items-center text-gray-600">
-                    <Eye size={18} className="mr-2" />
-                    <span>{pet.views} visualizações</span>
-                  </div>
-                </div>
-                
-                {/* Detalhes do Pet */}
-                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-                  {pet.raca && (
-                    <div className="flex items-center text-gray-700">
-                      <PawPrint size={16} className="mr-2 text-pet-purple" />
-                      <span>Raça: {pet.raca}</span>
-                    </div>
-                  )}
-                  {pet.idade && (
-                    <div className="flex items-center text-gray-700">
-                      <Clock size={16} className="mr-2 text-pet-purple" />
-                      <span>Idade: {pet.idade}</span>
-                    </div>
-                  )}
-                  {pet.genero && (
-                    <div className="flex items-center text-gray-700">
-                      {pet.genero === 'Macho' ? (
-                        <div className="flex items-center">
-                          <span className="mr-2 text-blue-500 text-lg">♂</span>
-                          <span>Macho</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center">
-                          <span className="mr-2 text-pink-500 text-lg">♀</span>
-                          <span>Fêmea</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {pet.porte && (
-                    <div className="flex items-center text-gray-700">
-                      <Ruler size={16} className="mr-2 text-pet-purple" />
-                      <span>Porte: {pet.porte}</span>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Status extras */}
-                {pet.status === 'adocao' && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Badge variant={pet.castrado ? "default" : "outline"} className={pet.castrado ? "bg-green-100 text-green-800 border-green-200" : ""}>
-                      {pet.castrado ? "Castrado" : "Não castrado"}
-                    </Badge>
-                    <Badge variant={pet.vacinasEmDia ? "default" : "outline"} className={pet.vacinasEmDia ? "bg-green-100 text-green-800 border-green-200" : ""}>
-                      {pet.vacinasEmDia ? "Vacinas em dia" : "Vacinas pendentes"}
-                    </Badge>
-                    <Badge variant={pet.aceitaCriancas ? "default" : "outline"} className={pet.aceitaCriancas ? "bg-blue-100 text-blue-800 border-blue-200" : ""}>
-                      <Baby size={14} className="mr-1" />
-                      {pet.aceitaCriancas ? "Aceita crianças" : "Não aceita crianças"}
-                    </Badge>
-                    <Badge variant={pet.aceitaOutrosAnimais ? "default" : "outline"} className={pet.aceitaOutrosAnimais ? "bg-blue-100 text-blue-800 border-blue-200" : ""}>
-                      <Users size={14} className="mr-1" />
-                      {pet.aceitaOutrosAnimais ? "Aceita outros animais" : "Não aceita outros animais"}
-                    </Badge>
-                  </div>
-                )}
-                
-                {/* Data desaparecimento para pets perdidos */}
-                {pet.status === 'perdido' && (
-                  <div className="mt-4 p-3 bg-red-50 rounded-md border border-red-200">
-                    <p className="text-sm text-red-700 font-medium">
-                      <Clock size={14} className="inline-block mr-1" />
-                      Desaparecido desde: {pet.timeRegistered}
-                    </p>
-                  </div>
+                  <OwnerActions petId={pet.id} userId={pet.user_id} />
                 )}
                 
                 <div className="mt-8">
-                  <h2 className="text-xl font-semibold mb-2">Descrição</h2>
-                  <p className="text-gray-600">
-                    {pet.descricao || "Sem descrição disponível."}
-                  </p>
-                </div>
-
-                {/* Temperamento para adoção */}
-                {pet.status === 'adocao' && pet.temperamento && (
-                  <div className="mt-4">
-                    <h3 className="font-medium text-gray-800">Temperamento</h3>
-                    <p className="text-gray-600">{pet.temperamento}</p>
-                  </div>
-                )}
-                
-                <div className="mt-8">
-                  <h2 className="text-xl font-semibold mb-4">Contato</h2>
-                  <div className="flex items-center">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src="https://github.com/shadcn.png" alt="Usuário" />
-                      <AvatarFallback>UN</AvatarFallback>
-                    </Avatar>
-                    <div className="ml-4">
-                      <p className="font-medium text-gray-800">Cadastrado por</p>
-                      <div className="flex flex-col sm:flex-row sm:space-x-4 text-sm text-gray-600">
-                        {pet.contactWhatsapp && (
-                          <div className="flex items-center">
-                            <Phone size={14} className="mr-1" />
-                            <span>{pet.contactWhatsapp}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center mt-1 sm:mt-0">
-                          <Mail size={14} className="mr-1" />
-                          <span>Contato via site</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-8 flex flex-wrap gap-3">
-                  {pet.contactWhatsapp && (
-                    <Button 
-                      variant="purple"
-                      onClick={() => window.open(`https://wa.me/${pet.contactWhatsapp.replace(/\D/g, '')}`, '_blank')}
-                    >
-                      Contatar via WhatsApp
-                    </Button>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    className="flex items-center"
-                    onClick={() => {
-                      const url = window.location.href;
-                      const text = `${statusLabels[pet.status as keyof typeof statusLabels]}: ${pet.name} - ${pet.type}`;
-                      navigator.share?.({
-                        title: text,
-                        text: `${text} em ${pet.location}`,
-                        url: url,
-                      }).catch(console.error);
-                    }}
-                  >
-                    <Share2 size={16} className="mr-2" />
-                    Compartilhar
-                  </Button>
+                  <PetContact 
+                    contactWhatsapp={pet.contactWhatsapp} 
+                    name={pet.name}
+                    status={pet.status}
+                    location={pet.location}
+                  />
                 </div>
               </div>
             </div>
