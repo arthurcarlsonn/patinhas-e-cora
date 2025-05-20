@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { clinicsMock } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 import ClinicImage from '@/components/clinic-detail/ClinicImage';
 import ClinicBasicInfo from '@/components/clinic-detail/ClinicBasicInfo';
 import ClinicServices from '@/components/clinic-detail/ClinicServices';
@@ -11,12 +11,152 @@ import ClinicVeterinarios from '@/components/clinic-detail/ClinicVeterinarios';
 import ClinicContact from '@/components/clinic-detail/ClinicContact';
 import ClinicActions from '@/components/clinic-detail/ClinicActions';
 import ClinicNotFound from '@/components/clinic-detail/ClinicNotFound';
+import { toast } from '@/components/ui/sonner';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface Veterinario {
+  nome: string;
+  especialidade: string;
+}
+
+interface ClinicData {
+  id: string;
+  name: string;
+  category: string;
+  location: string;
+  address: string;
+  description: string;
+  services: string[];
+  specialties: string[];
+  open_hours: string;
+  phone: string;
+  whatsapp: string;
+  email: string;
+  website: string;
+  social_media: { instagram?: string; facebook?: string };
+  has_parking: boolean;
+  has_home_service: boolean;
+  main_image_url: string;
+  views: number;
+  veterinarios: Veterinario[];
+}
 
 const ClinicDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const clinic = clinicsMock.find(clinic => clinic.id === id);
+  const [clinic, setClinic] = useState<ClinicData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-  if (!clinic) {
+  useEffect(() => {
+    const fetchClinic = async () => {
+      if (!id) {
+        setNotFound(true);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        
+        // Buscar dados da clínica
+        const { data: clinicData, error: clinicError } = await supabase
+          .from('clinics')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (clinicError) {
+          console.error('Erro ao buscar clínica:', clinicError);
+          setNotFound(true);
+          return;
+        }
+
+        if (!clinicData) {
+          setNotFound(true);
+          return;
+        }
+
+        // Incrementar visualizações
+        const { error: updateError } = await supabase
+          .from('clinics')
+          .update({ views: (clinicData.views || 0) + 1 })
+          .eq('id', id);
+
+        if (updateError) {
+          console.error('Erro ao atualizar visualizações:', updateError);
+        }
+
+        // Buscar veterinários da clínica
+        const { data: vetsData, error: vetsError } = await supabase
+          .from('veterinarians')
+          .select('*')
+          .eq('clinic_id', id);
+
+        if (vetsError) {
+          console.error('Erro ao buscar veterinários:', vetsError);
+        }
+
+        // Converter os dados dos veterinários
+        const veterinarios: Veterinario[] = (vetsData || []).map(vet => ({
+          nome: vet.name,
+          especialidade: vet.specialty
+        }));
+
+        // Montar objeto da clínica completo
+        const formattedClinic: ClinicData = {
+          ...clinicData,
+          veterinarios,
+          services: clinicData.services || [],
+          specialties: clinicData.specialties || [],
+          social_media: clinicData.social_media || { instagram: '', facebook: '' },
+          views: (clinicData.views || 0) + 1  // Atualizar localmente para exibição imediata
+        };
+
+        setClinic(formattedClinic);
+      } catch (error) {
+        console.error('Erro ao buscar detalhes da clínica:', error);
+        toast.error('Erro ao carregar os detalhes da clínica. Por favor, tente novamente.');
+        setNotFound(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClinic();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-grow py-8">
+          <div className="container mx-auto px-4">
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="md:flex">
+                <div className="md:w-1/2">
+                  <Skeleton className="h-64 md:h-full" />
+                </div>
+                <div className="md:w-1/2 p-6">
+                  <Skeleton className="h-10 w-3/4 mb-4" />
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-2/3 mb-4" />
+                  <Skeleton className="h-24 w-full mb-6" />
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-full mb-6" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (notFound || !clinic) {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
@@ -28,41 +168,6 @@ const ClinicDetail = () => {
     );
   }
 
-  // Enhanced clinic data (in a real app, this would come from the database)
-  const enhancedClinic = {
-    ...clinic,
-    description: `${clinic.name} é uma clínica veterinária completa. Oferecemos serviços de consultas, exames, cirurgias, vacinação e muito mais para garantir a saúde e bem-estar do seu pet.`,
-    horarioFuncionamento: "Segunda a Sexta: 08h às 18h | Sábado: 08h às 12h",
-    servicos: [
-      "Consultas",
-      "Exames laboratoriais",
-      "Cirurgias",
-      "Vacinação",
-      "Emergência 24h"
-    ],
-    especialidades: [
-      "Dermatologia",
-      "Cardiologia",
-      "Ortopedia",
-      "Odontologia"
-    ],
-    whatsapp: "(11) 98765-4321",
-    telefone: "(11) 3456-7890",
-    email: `contato@${clinic.name.toLowerCase().replace(/\s/g, '').replace(/[^\w\s]/gi, '')}.com.br`,
-    website: `www.${clinic.name.toLowerCase().replace(/\s/g, '').replace(/[^\w\s]/gi, '')}.com.br`,
-    socialMedia: {
-      instagram: `@${clinic.name.toLowerCase().replace(/\s/g, '').replace(/[^\w\s]/gi, '')}`,
-      facebook: `/${clinic.name.toLowerCase().replace(/\s/g, '').replace(/[^\w\s]/gi, '')}`
-    },
-    veterinarios: [
-      { nome: "Dr. Carlos Silva", especialidade: "Clínico Geral" },
-      { nome: "Dra. Ana Oliveira", especialidade: "Dermatologia" }
-    ],
-    endereco: `Rua das Flores, 123 - ${clinic.location}`,
-    atendimentoDomicilio: Math.random() > 0.5,
-    possuiEstacionamento: Math.random() > 0.5,
-  };
-
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -73,7 +178,7 @@ const ClinicDetail = () => {
               {/* Imagem */}
               <div className="md:w-1/2">
                 <ClinicImage 
-                  image={clinic.image}
+                  image={clinic.main_image_url}
                   name={clinic.name}
                   category={clinic.category}
                 />
@@ -83,29 +188,29 @@ const ClinicDetail = () => {
               <div className="md:w-1/2 p-6">
                 <ClinicBasicInfo 
                   name={clinic.name}
-                  endereco={enhancedClinic.endereco}
-                  horarioFuncionamento={enhancedClinic.horarioFuncionamento}
+                  endereco={clinic.address || `Endereço não informado - ${clinic.location}`}
+                  horarioFuncionamento={clinic.open_hours || "Horário não informado"}
                   views={clinic.views}
-                  atendimentoDomicilio={enhancedClinic.atendimentoDomicilio}
-                  possuiEstacionamento={enhancedClinic.possuiEstacionamento}
-                  description={enhancedClinic.description}
+                  atendimentoDomicilio={clinic.has_home_service}
+                  possuiEstacionamento={clinic.has_parking}
+                  description={clinic.description || `${clinic.name} é uma clínica veterinária em ${clinic.location}.`}
                 />
 
                 <ClinicServices 
-                  servicos={enhancedClinic.servicos}
-                  especialidades={enhancedClinic.especialidades}
+                  servicos={clinic.services}
+                  especialidades={clinic.specialties}
                 />
 
                 <ClinicVeterinarios 
-                  veterinarios={enhancedClinic.veterinarios}
+                  veterinarios={clinic.veterinarios}
                 />
                 
                 <ClinicContact 
-                  telefone={enhancedClinic.telefone}
-                  whatsapp={enhancedClinic.whatsapp}
-                  email={enhancedClinic.email}
-                  website={enhancedClinic.website}
-                  socialMedia={enhancedClinic.socialMedia}
+                  telefone={clinic.phone || "Não informado"}
+                  whatsapp={clinic.whatsapp || "Não informado"}
+                  email={clinic.email || "Não informado"}
+                  website={clinic.website || "#"}
+                  socialMedia={clinic.social_media}
                 />
                 
                 <ClinicActions />

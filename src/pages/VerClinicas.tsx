@@ -6,7 +6,7 @@ import ClinicCard from '@/components/ClinicCard';
 import { ClinicCardProps } from '@/components/ClinicCard';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { clinicsMock } from '@/data/mockData';
+import { toast } from '@/components/ui/sonner';
 
 const VerClinicas = () => {
   const [clinics, setClinics] = useState<ClinicCardProps[]>([]);
@@ -15,9 +15,7 @@ const VerClinicas = () => {
   useEffect(() => {
     const fetchClinics = async () => {
       try {
-        // Temporarily using mock data as the clinics table is not created yet
-        // When the clinics table is created, uncomment the code below and remove the mock data
-        /*
+        setIsLoading(true);
         const { data, error } = await supabase
           .from('clinics')
           .select('*')
@@ -25,34 +23,26 @@ const VerClinicas = () => {
 
         if (error) {
           console.error('Erro ao buscar clínicas:', error);
+          toast.error('Erro ao carregar clínicas. Por favor, tente novamente.');
           return;
         }
 
         if (data) {
-          // Convert data from database to ClinicCard format
+          // Converter os dados do banco para o formato ClinicCard
           const formattedClinics: ClinicCardProps[] = data.map(clinic => ({
             id: clinic.id,
             name: clinic.name,
-            image: clinic.image_url || `https://via.placeholder.com/300x200?text=Clínica`,
+            image: clinic.main_image_url || `https://via.placeholder.com/300x200?text=Clínica`,
             location: clinic.location,
-            category: clinic.speciality,
-            contactInfo: {
-              phone: clinic.phone,
-              email: clinic.email,
-              website: clinic.website || ''
-            },
-            rating: clinic.rating || 0,
+            category: clinic.category,
             views: clinic.views || 0
           }));
 
           setClinics(formattedClinics);
         }
-        */
-        
-        // Using mock data for now
-        setClinics(clinicsMock);
       } catch (error) {
         console.error('Erro ao buscar clínicas:', error);
+        toast.error('Erro ao carregar clínicas. Por favor, tente novamente.');
       } finally {
         setIsLoading(false);
       }

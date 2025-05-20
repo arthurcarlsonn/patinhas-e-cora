@@ -9,6 +9,78 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      clinics: {
+        Row: {
+          address: string | null
+          category: string
+          created_at: string
+          description: string | null
+          email: string | null
+          has_home_service: boolean | null
+          has_parking: boolean | null
+          id: string
+          location: string
+          main_image_url: string | null
+          name: string
+          open_hours: string | null
+          phone: string | null
+          services: string[] | null
+          social_media: Json | null
+          specialties: string[] | null
+          updated_at: string
+          user_id: string | null
+          views: number | null
+          website: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          address?: string | null
+          category: string
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          has_home_service?: boolean | null
+          has_parking?: boolean | null
+          id?: string
+          location: string
+          main_image_url?: string | null
+          name: string
+          open_hours?: string | null
+          phone?: string | null
+          services?: string[] | null
+          social_media?: Json | null
+          specialties?: string[] | null
+          updated_at?: string
+          user_id?: string | null
+          views?: number | null
+          website?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          address?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          has_home_service?: boolean | null
+          has_parking?: boolean | null
+          id?: string
+          location?: string
+          main_image_url?: string | null
+          name?: string
+          open_hours?: string | null
+          phone?: string | null
+          services?: string[] | null
+          social_media?: Json | null
+          specialties?: string[] | null
+          updated_at?: string
+          user_id?: string | null
+          views?: number | null
+          website?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           address: string | null
@@ -353,6 +425,38 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      veterinarians: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          id: string
+          name: string
+          specialty: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          id?: string
+          name: string
+          specialty: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          specialty?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "veterinarians_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
