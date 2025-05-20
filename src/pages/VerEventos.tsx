@@ -2,11 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import EventCard from '@/components/EventCard';
-import { EventCardProps } from '@/components/EventCard';
+import EventCard, { EventCardProps } from '@/components/EventCard';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { eventsMock } from '@/data/mockData';
+import { Loader2 } from 'lucide-react';
 
 const VerEventos = () => {
   const [events, setEvents] = useState<EventCardProps[]>([]);
@@ -15,12 +14,19 @@ const VerEventos = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        // Temporarily using mock data as the events table is not created yet
-        // When the events table is created, uncomment the code below and remove the mock data
-        /*
+        setIsLoading(true);
         const { data, error } = await supabase
           .from('events')
-          .select('*')
+          .select(`
+            id,
+            title,
+            date,
+            location,
+            category,
+            main_image_url,
+            views,
+            organization_id
+          `)
           .order('date', { ascending: true });
 
         if (error) {
@@ -33,20 +39,19 @@ const VerEventos = () => {
           const formattedEvents: EventCardProps[] = data.map(event => ({
             id: event.id,
             title: event.title,
-            image: event.image_url || `https://via.placeholder.com/300x200?text=Evento`,
-            date: new Date(event.date),
+            category: event.category,
+            image: event.main_image_url || `https://via.placeholder.com/300x200?text=Evento`,
+            date: new Date(event.date).toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric'
+            }),
             location: event.location,
-            organizer: event.organizer,
-            description: event.description,
-            category: event.category
+            views: event.views || 0
           }));
 
           setEvents(formattedEvents);
         }
-        */
-        
-        // Using mock data for now
-        setEvents(eventsMock);
       } catch (error) {
         console.error('Erro ao buscar eventos:', error);
       } finally {
@@ -87,7 +92,7 @@ const VerEventos = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12">
+              <div className="text-center py-12 bg-white/10 rounded-lg">
                 <p className="text-white">Nenhum evento encontrado. Cadastre o primeiro!</p>
               </div>
             )}

@@ -1,20 +1,77 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import EventCard, { EventCardProps } from './EventCard';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
 
 interface EventListProps {
   title: string;
-  events: EventCardProps[];
   viewAllLink: string;
+  limit?: number;
 }
 
 const EventList = ({
   title,
-  events,
-  viewAllLink
+  viewAllLink,
+  limit = 8
 }: EventListProps) => {
+  const [events, setEvents] = useState<EventCardProps[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .select(`
+            id,
+            title,
+            date,
+            location,
+            category,
+            main_image_url,
+            views,
+            organization_id
+          `)
+          .order('date', { ascending: true })
+          .limit(limit);
+
+        if (error) {
+          console.error('Erro ao buscar eventos:', error);
+          return;
+        }
+
+        if (data) {
+          // Convert data from database to EventCard format
+          const formattedEvents: EventCardProps[] = data.map(event => ({
+            id: event.id,
+            title: event.title,
+            category: event.category,
+            image: event.main_image_url || `https://via.placeholder.com/300x200?text=Evento`,
+            date: new Date(event.date).toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric'
+            }),
+            location: event.location,
+            views: event.views || 0
+          }));
+
+          setEvents(formattedEvents);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar eventos:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, [limit]);
+
   return (
     <section className="py-12 bg-[#4e049c]">
       <div className="container mx-auto px-4">
@@ -29,9 +86,20 @@ const EventList = ({
             </Button>
           </Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {events.map(event => <EventCard key={event.id} {...event} />)}
-        </div>
+        
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-12 w-12 text-white animate-spin" />
+          </div>
+        ) : events.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {events.map(event => <EventCard key={event.id} {...event} />)}
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-white/10 rounded-lg">
+            <p className="text-white">Nenhum evento encontrado no momento.</p>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -11,14 +11,6 @@ import EventList from '@/components/EventList';
 import ClinicList from '@/components/ClinicList';
 import Footer from '@/components/Footer';
 
-// Importar dados mockados para casos de fallback
-import { 
-  petsMock, 
-  productsMock, 
-  organizationsMock,
-  eventsMock
-} from '@/data/mockData';
-
 const Index = () => {
   return (
     <div className="flex flex-col min-h-screen">
@@ -47,8 +39,8 @@ const Index = () => {
         />
         <EventList 
           title="Eventos" 
-          events={eventsMock.slice(0, 8)} 
           viewAllLink="/eventos"
+          limit={8}
         />
         <ClinicList 
           title="Clínicas e Veterinários" 
