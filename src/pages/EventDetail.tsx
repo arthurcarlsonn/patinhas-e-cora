@@ -39,15 +39,18 @@ const EventDetail = () => {
     const fetchEventData = async () => {
       setLoading(true);
       try {
-        // Incrementar visualizações
-        await supabase.rpc('increment_views', { 
-          table_name: 'events',
-          row_id: id 
-        } as IncrementViewsParams).then(result => {
-          if (result.error) {
-            console.error("Erro ao incrementar visualizações:", result.error);
-          }
-        });
+        // Incrementar visualizações - fixed type assertion
+        const incrementResult = await supabase.rpc(
+          'increment_views', 
+          { 
+            table_name: 'events',
+            row_id: id 
+          } as unknown as Record<string, unknown>
+        );
+        
+        if (incrementResult.error) {
+          console.error("Erro ao incrementar visualizações:", incrementResult.error);
+        }
 
         // Buscar dados do evento
         const { data, error } = await supabase
