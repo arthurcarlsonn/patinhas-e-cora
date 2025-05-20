@@ -2,8 +2,9 @@
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Eye, MapPin, Clock } from 'lucide-react';
+import { Eye, MapPin, Clock, Heart, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Button } from './ui/button';
 
 export interface PetCardProps {
   id: string;
@@ -29,6 +30,20 @@ const statusLabels = {
 };
 
 const PetCard = ({ id, name, type, status, image, location, timeRegistered, views }: PetCardProps) => {
+  const handleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log(`Favorited pet: ${name}`);
+    // In a real app, this would save to user favorites
+  };
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log(`Shared pet: ${name}`);
+    // In a real app, this would open share dialog
+  };
+
   return (
     <Link to={`/pet/${id}`}>
       <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 hover-scale h-full">
@@ -67,10 +82,28 @@ const PetCard = ({ id, name, type, status, image, location, timeRegistered, view
           </div>
         </CardContent>
         
-        <CardFooter className="pt-0 text-sm text-gray-500">
-          <div className="flex items-center">
+        <CardFooter className="pt-0 flex justify-between items-center">
+          <div className="flex items-center text-sm text-gray-500">
             <Eye size={14} className="mr-1" />
             <span>{views} visualizações</span>
+          </div>
+          <div className="flex space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="p-1 h-8 w-8"
+              onClick={handleFavorite}
+            >
+              <Heart size={16} className="text-gray-500 hover:text-red-500" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="p-1 h-8 w-8"
+              onClick={handleShare}
+            >
+              <Share2 size={16} className="text-gray-500 hover:text-blue-500" />
+            </Button>
           </div>
         </CardFooter>
       </Card>
