@@ -11,6 +11,7 @@ import { Package, Store, Settings, LogOut } from 'lucide-react';
 import EmpresaProductForm from '@/components/empresa/EmpresaProductForm';
 import EmpresaProfile from '@/components/empresa/EmpresaProfile';
 import { useAuth } from '@/contexts/AuthContext';
+import { ProductCardProps } from '@/components/ProductCard';
 
 const EmpresaDashboard = () => {
   const { user, userType, signOut } = useAuth();
@@ -33,6 +34,8 @@ const EmpresaDashboard = () => {
     },
     description: ""
   });
+
+  const [companyProducts, setCompanyProducts] = useState<ProductCardProps[]>([]);
   
   // Verificar se o usuário está logado como empresa
   useEffect(() => {
@@ -85,7 +88,43 @@ const EmpresaDashboard = () => {
       }
     };
     
+    // Carregar produtos da empresa
+    const fetchCompanyProducts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('user_id', user.id);
+          
+        if (error) throw error;
+        
+        if (data) {
+          // Converter dados do banco para o formato do ProductCard
+          const formattedProducts: ProductCardProps[] = data.map(product => ({
+            id: product.id,
+            title: product.title,
+            image: product.main_image_url || `https://via.placeholder.com/300x200?text=Produto`,
+            price: Number(product.price),
+            category: product.category,
+            location: product.location,
+            views: product.views || 0,
+            business: {
+              id: product.user_id,
+              name: company.name || 'Empresa',
+              verified: true
+            },
+            homeDelivery: product.home_delivery || false
+          }));
+          
+          setCompanyProducts(formattedProducts);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar produtos:', error);
+      }
+    };
+    
     fetchCompanyData();
+    fetchCompanyProducts();
   }, [user, navigate, userType, toast]);
   
   // Atualizar perfil da empresa
@@ -165,7 +204,10 @@ const EmpresaDashboard = () => {
               </TabsList>
               
               <TabsContent value="produtos">
-                <EmpresaProductForm />
+                <EmpresaProductForm 
+                  companyProducts={companyProducts}
+                  setCompanyProducts={setCompanyProducts}
+                />
               </TabsContent>
               
               <TabsContent value="perfil">

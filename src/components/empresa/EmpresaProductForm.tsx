@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +8,13 @@ import { Switch } from '@/components/ui/switch';
 import { MapPin, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const EmpresaProductForm = () => {
+// Update the component interface to accept companyProducts and setCompanyProducts
+interface EmpresaProductFormProps {
+  companyProducts?: any[];
+  setCompanyProducts?: (products: any[]) => void;
+}
+
+const EmpresaProductForm = ({ companyProducts = [], setCompanyProducts }: EmpresaProductFormProps) => {
   const { toast } = useToast();
 
   const handleSubmit = (event: React.FormEvent) => {

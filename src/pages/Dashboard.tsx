@@ -11,7 +11,8 @@ import PetsTab from '@/components/dashboard/PetsTab';
 import FavoritesTab from '@/components/dashboard/FavoritesTab';
 import { useAuth } from '@/contexts/AuthContext';
 
-import { petsMock, productsMock, organizationsMock } from '@/data/mockData';
+// We'll only use mock data for favorites since we're not implementing that functionality yet
+import { productsMock, organizationsMock } from '@/data/mockData';
 
 const Dashboard = () => {
   const { user, userType } = useAuth();
@@ -27,6 +28,8 @@ const Dashboard = () => {
     avatar: '',
     bio: '',
   });
+  
+  const [userPets, setUserPets] = useState([]);
   
   const [favorites, setFavorites] = useState<{
     pets: string[];
@@ -82,6 +85,46 @@ const Dashboard = () => {
       }
     };
 
+    // Buscar os pets do usuário
+    const fetchUserPets = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('pets')
+          .select('*')
+          .eq('user_id', user.id);
+        
+        if (error) throw error;
+        
+        if (data) {
+          // Convertendo para o formato do PetCard
+          const formattedPets = data.map(pet => ({
+            id: pet.id,
+            name: pet.name,
+            type: pet.type,
+            status: pet.status as 'perdido' | 'encontrado' | 'adocao',
+            image: pet.main_image_url || `https://place-puppy.com/300x300`,
+            location: pet.location,
+            timeRegistered: new Date(pet.created_at).toLocaleDateString('pt-BR'),
+            views: pet.views || 0,
+            raca: pet.breed,
+            idade: pet.age,
+            genero: pet.gender as 'Macho' | 'Fêmea',
+            porte: pet.size as 'Pequeno' | 'Médio' | 'Grande',
+            cor: pet.color,
+            temperamento: pet.temperament,
+            castrado: pet.is_neutered,
+            vacinasEmDia: pet.is_vaccinated,
+            aceitaCriancas: pet.accepts_children,
+            aceitaOutrosAnimais: pet.accepts_other_animals
+          }));
+          
+          setUserPets(formattedPets);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar pets do usuário:', error);
+      }
+    };
+
     // Carregar favoritos do localStorage (em produção viria do Supabase)
     const storedFavorites = JSON.parse(localStorage.getItem('favorites') || '{}');
     setFavorites({
@@ -91,6 +134,7 @@ const Dashboard = () => {
     });
     
     fetchProfile();
+    fetchUserPets();
   }, [user, navigate, userType, toast]);
   
   // Atualizar perfil
@@ -127,8 +171,8 @@ const Dashboard = () => {
   };
   
   // Filtragem baseada em IDs salvos no localStorage
-  const userPets = petsMock.slice(0, 3); // Simulando que os 3 primeiros pets são do usuário
-  const favoritePets = petsMock.filter(pet => favorites.pets?.includes(pet.id));
+  const favoritePets = Array.isArray(favorites.pets) ? 
+    userPets.filter(pet => favorites.pets?.includes(pet.id)) : [];
   const favoriteProducts = productsMock.filter(product => favorites.products?.includes(product.id));
   const favoriteOrgs = organizationsMock.filter(org => favorites.organizations?.includes(org.id));
 

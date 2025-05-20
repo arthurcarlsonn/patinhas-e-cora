@@ -1,17 +1,90 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { petsMock } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 import { MapPin, Clock, Eye, Phone, Mail, Share2, Ruler, PawPrint, ShieldCheck, Baby, Users } from 'lucide-react';
 
 const PetDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const pet = petsMock.find(pet => pet.id === id);
+  const [pet, setPet] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPet = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        
+        const { data, error } = await supabase
+          .from('pets')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          // Incrementar visualizações
+          await supabase
+            .from('pets')
+            .update({ views: (data.views || 0) + 1 })
+            .eq('id', id);
+          
+          setPet({
+            id: data.id,
+            name: data.name,
+            type: data.type,
+            status: data.status,
+            image: data.main_image_url || `https://place-puppy.com/300x300`,
+            location: data.location,
+            timeRegistered: new Date(data.created_at).toLocaleDateString('pt-BR'),
+            views: (data.views || 0) + 1, // Já incrementando localmente
+            raca: data.breed,
+            idade: data.age,
+            genero: data.gender,
+            porte: data.size,
+            cor: data.color,
+            temperamento: data.temperament,
+            castrado: data.is_neutered,
+            vacinasEmDia: data.is_vaccinated,
+            aceitaCriancas: data.accepts_children,
+            aceitaOutrosAnimais: data.accepts_other_animals,
+            descricao: data.description,
+            contactWhatsapp: data.contact_whatsapp,
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados do pet:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchPet();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pet-purple mx-auto"></div>
+            <p className="mt-4 text-gray-600">Carregando informações do pet...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!pet) {
     return (
@@ -28,27 +101,6 @@ const PetDetail = () => {
       </div>
     );
   }
-
-  // Enhanced pet data (in a real app, this would come from the database)
-  const enhancedPet = {
-    ...pet,
-    raca: pet.type === 'Cachorro' ? 'Vira-lata' : pet.type === 'Gato' ? 'Siamês' : 'Não especificada',
-    idade: '2 anos',
-    genero: Math.random() > 0.5 ? 'Macho' : 'Fêmea',
-    porte: ['Pequeno', 'Médio', 'Grande'][Math.floor(Math.random() * 3)],
-    cor: ['Preto', 'Branco', 'Caramelo', 'Malhado'][Math.floor(Math.random() * 4)],
-    temperamento: ['Dócil', 'Brincalhão', 'Calmo', 'Sociável'][Math.floor(Math.random() * 4)],
-    castrado: Math.random() > 0.5,
-    vacinasEmDia: Math.random() > 0.5,
-    aceitaCriancas: Math.random() > 0.5,
-    aceitaOutrosAnimais: Math.random() > 0.5,
-    dataDesaparecimento: pet.status === 'perdido' ? new Date().toLocaleDateString('pt-BR') : null,
-    observacoes: pet.status === 'perdido' 
-      ? 'Estava usando coleira azul quando foi visto pela última vez.' 
-      : pet.status === 'encontrado' 
-        ? 'Encontrado sem coleira na rua. Parece ser bem cuidado.'
-        : 'Muito amigável e já está acostumado com a vida em apartamento.',
-  };
 
   const statusColors = {
     perdido: 'bg-red-100 text-red-800 border-red-200',
@@ -82,9 +134,9 @@ const PetDetail = () => {
                     }}
                   />
                   <Badge 
-                    className={`absolute top-4 right-4 ${statusColors[pet.status]} border`}
+                    className={`absolute top-4 right-4 ${statusColors[pet.status as keyof typeof statusColors]} border`}
                   >
-                    {statusLabels[pet.status]}
+                    {statusLabels[pet.status as keyof typeof statusLabels]}
                   </Badge>
                 </div>
               </div>
@@ -115,59 +167,67 @@ const PetDetail = () => {
                 
                 {/* Detalhes do Pet */}
                 <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-                  <div className="flex items-center text-gray-700">
-                    <PawPrint size={16} className="mr-2 text-pet-purple" />
-                    <span>Raça: {enhancedPet.raca}</span>
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <Clock size={16} className="mr-2 text-pet-purple" />
-                    <span>Idade: {enhancedPet.idade}</span>
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    {enhancedPet.genero === 'Macho' ? (
-                      <div className="flex items-center">
-                        <span className="mr-2 text-blue-500 text-lg">♂</span>
-                        <span>Macho</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        <span className="mr-2 text-pink-500 text-lg">♀</span>
-                        <span>Fêmea</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <Ruler size={16} className="mr-2 text-pet-purple" />
-                    <span>Porte: {enhancedPet.porte}</span>
-                  </div>
+                  {pet.raca && (
+                    <div className="flex items-center text-gray-700">
+                      <PawPrint size={16} className="mr-2 text-pet-purple" />
+                      <span>Raça: {pet.raca}</span>
+                    </div>
+                  )}
+                  {pet.idade && (
+                    <div className="flex items-center text-gray-700">
+                      <Clock size={16} className="mr-2 text-pet-purple" />
+                      <span>Idade: {pet.idade}</span>
+                    </div>
+                  )}
+                  {pet.genero && (
+                    <div className="flex items-center text-gray-700">
+                      {pet.genero === 'Macho' ? (
+                        <div className="flex items-center">
+                          <span className="mr-2 text-blue-500 text-lg">♂</span>
+                          <span>Macho</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center">
+                          <span className="mr-2 text-pink-500 text-lg">♀</span>
+                          <span>Fêmea</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {pet.porte && (
+                    <div className="flex items-center text-gray-700">
+                      <Ruler size={16} className="mr-2 text-pet-purple" />
+                      <span>Porte: {pet.porte}</span>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Status extras */}
                 {pet.status === 'adocao' && (
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <Badge variant={enhancedPet.castrado ? "default" : "outline"} className={enhancedPet.castrado ? "bg-green-100 text-green-800 border-green-200" : ""}>
-                      {enhancedPet.castrado ? "Castrado" : "Não castrado"}
+                    <Badge variant={pet.castrado ? "default" : "outline"} className={pet.castrado ? "bg-green-100 text-green-800 border-green-200" : ""}>
+                      {pet.castrado ? "Castrado" : "Não castrado"}
                     </Badge>
-                    <Badge variant={enhancedPet.vacinasEmDia ? "default" : "outline"} className={enhancedPet.vacinasEmDia ? "bg-green-100 text-green-800 border-green-200" : ""}>
-                      {enhancedPet.vacinasEmDia ? "Vacinas em dia" : "Vacinas pendentes"}
+                    <Badge variant={pet.vacinasEmDia ? "default" : "outline"} className={pet.vacinasEmDia ? "bg-green-100 text-green-800 border-green-200" : ""}>
+                      {pet.vacinasEmDia ? "Vacinas em dia" : "Vacinas pendentes"}
                     </Badge>
-                    <Badge variant={enhancedPet.aceitaCriancas ? "default" : "outline"} className={enhancedPet.aceitaCriancas ? "bg-blue-100 text-blue-800 border-blue-200" : ""}>
+                    <Badge variant={pet.aceitaCriancas ? "default" : "outline"} className={pet.aceitaCriancas ? "bg-blue-100 text-blue-800 border-blue-200" : ""}>
                       <Baby size={14} className="mr-1" />
-                      {enhancedPet.aceitaCriancas ? "Aceita crianças" : "Não aceita crianças"}
+                      {pet.aceitaCriancas ? "Aceita crianças" : "Não aceita crianças"}
                     </Badge>
-                    <Badge variant={enhancedPet.aceitaOutrosAnimais ? "default" : "outline"} className={enhancedPet.aceitaOutrosAnimais ? "bg-blue-100 text-blue-800 border-blue-200" : ""}>
+                    <Badge variant={pet.aceitaOutrosAnimais ? "default" : "outline"} className={pet.aceitaOutrosAnimais ? "bg-blue-100 text-blue-800 border-blue-200" : ""}>
                       <Users size={14} className="mr-1" />
-                      {enhancedPet.aceitaOutrosAnimais ? "Aceita outros animais" : "Não aceita outros animais"}
+                      {pet.aceitaOutrosAnimais ? "Aceita outros animais" : "Não aceita outros animais"}
                     </Badge>
                   </div>
                 )}
                 
                 {/* Data desaparecimento para pets perdidos */}
-                {pet.status === 'perdido' && enhancedPet.dataDesaparecimento && (
+                {pet.status === 'perdido' && (
                   <div className="mt-4 p-3 bg-red-50 rounded-md border border-red-200">
                     <p className="text-sm text-red-700 font-medium">
                       <Clock size={14} className="inline-block mr-1" />
-                      Desaparecido desde: {enhancedPet.dataDesaparecimento}
+                      Desaparecido desde: {pet.timeRegistered}
                     </p>
                   </div>
                 )}
@@ -175,15 +235,15 @@ const PetDetail = () => {
                 <div className="mt-8">
                   <h2 className="text-xl font-semibold mb-2">Descrição</h2>
                   <p className="text-gray-600">
-                    {enhancedPet.observacoes}
+                    {pet.descricao || "Sem descrição disponível."}
                   </p>
                 </div>
 
                 {/* Temperamento para adoção */}
-                {pet.status === 'adocao' && (
+                {pet.status === 'adocao' && pet.temperamento && (
                   <div className="mt-4">
                     <h3 className="font-medium text-gray-800">Temperamento</h3>
-                    <p className="text-gray-600">{enhancedPet.temperamento}</p>
+                    <p className="text-gray-600">{pet.temperamento}</p>
                   </div>
                 )}
                 
@@ -195,15 +255,17 @@ const PetDetail = () => {
                       <AvatarFallback>UN</AvatarFallback>
                     </Avatar>
                     <div className="ml-4">
-                      <p className="font-medium text-gray-800">Usuário da Silva</p>
+                      <p className="font-medium text-gray-800">Cadastrado por</p>
                       <div className="flex flex-col sm:flex-row sm:space-x-4 text-sm text-gray-600">
-                        <div className="flex items-center">
-                          <Phone size={14} className="mr-1" />
-                          <span>(11) 98765-4321</span>
-                        </div>
+                        {pet.contactWhatsapp && (
+                          <div className="flex items-center">
+                            <Phone size={14} className="mr-1" />
+                            <span>{pet.contactWhatsapp}</span>
+                          </div>
+                        )}
                         <div className="flex items-center mt-1 sm:mt-0">
                           <Mail size={14} className="mr-1" />
-                          <span>usuario@email.com</span>
+                          <span>Contato via site</span>
                         </div>
                       </div>
                     </div>
@@ -211,8 +273,27 @@ const PetDetail = () => {
                 </div>
                 
                 <div className="mt-8 flex flex-wrap gap-3">
-                  <Button variant="purple">Entrar em Contato</Button>
-                  <Button variant="outline" className="flex items-center">
+                  {pet.contactWhatsapp && (
+                    <Button 
+                      variant="purple"
+                      onClick={() => window.open(`https://wa.me/${pet.contactWhatsapp.replace(/\D/g, '')}`, '_blank')}
+                    >
+                      Contatar via WhatsApp
+                    </Button>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    className="flex items-center"
+                    onClick={() => {
+                      const url = window.location.href;
+                      const text = `${statusLabels[pet.status as keyof typeof statusLabels]}: ${pet.name} - ${pet.type}`;
+                      navigator.share?.({
+                        title: text,
+                        text: `${text} em ${pet.location}`,
+                        url: url,
+                      }).catch(console.error);
+                    }}
+                  >
                     <Share2 size={16} className="mr-2" />
                     Compartilhar
                   </Button>
