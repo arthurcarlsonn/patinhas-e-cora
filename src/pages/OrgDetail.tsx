@@ -57,13 +57,15 @@ const OrgDetail = () => {
     const fetchOrgData = async () => {
       setLoading(true);
       try {
-        // Incrementar visualizações - use type assertion with any
+        // Increment views with proper typing
+        const incrementParams: IncrementViewsParams = {
+          table_name: 'organizations',
+          row_id: id
+        };
+        
         const incrementResult = await supabase.rpc(
-          'increment_views', 
-          { 
-            table_name: 'organizations',
-            row_id: id 
-          } as any
+          'increment_views',
+          incrementParams
         );
         
         if (incrementResult.error) {
