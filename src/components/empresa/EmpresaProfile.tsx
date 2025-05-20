@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,27 +22,44 @@ interface EmpresaProfileProps {
     };
     description: string;
   };
+  isLoading?: boolean;
+  updateCompany?: (updatedCompany: any) => Promise<void>;
 }
 
-const EmpresaProfile = ({ company }: EmpresaProfileProps) => {
+const EmpresaProfile = ({ company, isLoading = false, updateCompany }: EmpresaProfileProps) => {
   const { toast } = useToast();
   const [editMode, setEditMode] = useState(false);
   const [companyData, setCompanyData] = useState(company);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setEditMode(false);
-    toast({
-      title: "Perfil atualizado!",
-      description: "As informações da sua empresa foram atualizadas com sucesso.",
-    });
+    
+    if (updateCompany) {
+      try {
+        await updateCompany(companyData);
+        setEditMode(false);
+      } catch (error) {
+        console.error('Erro ao atualizar perfil:', error);
+        toast({
+          title: "Erro ao atualizar",
+          description: "Não foi possível atualizar as informações da empresa.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      setEditMode(false);
+      toast({
+        title: "Perfil atualizado!",
+        description: "As informações da sua empresa foram atualizadas com sucesso.",
+      });
+    }
   };
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold">Perfil da Empresa</h2>
-        {!editMode && (
+        {!editMode && !isLoading && (
           <Button 
             onClick={() => setEditMode(true)}
             className="bg-pet-purple hover:bg-pet-lightPurple"
@@ -53,7 +69,11 @@ const EmpresaProfile = ({ company }: EmpresaProfileProps) => {
         )}
       </div>
 
-      {editMode ? (
+      {isLoading ? (
+        <div className="flex justify-center items-center p-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-pet-purple"></div>
+        </div>
+      ) : editMode ? (
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex flex-col items-center mb-6">
             <Avatar className="w-24 h-24 mb-4">
@@ -159,7 +179,11 @@ const EmpresaProfile = ({ company }: EmpresaProfileProps) => {
           </div>
           
           <div className="flex space-x-3">
-            <Button type="submit" className="flex-1 bg-pet-purple hover:bg-pet-lightPurple">
+            <Button 
+              type="submit" 
+              className="flex-1 bg-pet-purple hover:bg-pet-lightPurple"
+              disabled={isLoading}
+            >
               Salvar Alterações
             </Button>
             <Button type="button" variant="outline" onClick={() => setEditMode(false)} className="flex-1">
