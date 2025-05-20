@@ -30,27 +30,27 @@ const Index = () => {
         <SearchBar />
         <PetList 
           title="Últimos Pets Cadastrados" 
-          pets={petsMock} 
+          pets={petsMock.slice(0, 8)} 
           viewAllLink="/pets"
         />
         <ProductList 
           title="Produtos para seu Pet" 
-          products={productsMock} 
+          products={productsMock.slice(0, 8)} 
           viewAllLink="/produtos"
         />
         <OrgList 
           title="ONGs e Voluntários" 
-          organizations={organizationsMock} 
+          organizations={organizationsMock.slice(0, 8)} 
           viewAllLink="/ongs"
         />
         <EventList 
           title="Eventos" 
-          events={eventsMock} 
+          events={eventsMock.slice(0, 8)} 
           viewAllLink="/eventos"
         />
         <ClinicList 
           title="Clínicas e Veterinários" 
-          clinics={clinicsMock} 
+          clinics={clinicsMock.slice(0, 8)} 
           viewAllLink="/clinicas"
         />
       </main>

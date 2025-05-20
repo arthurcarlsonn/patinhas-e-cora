@@ -11,6 +11,11 @@ import QuemSomos from "./pages/QuemSomos";
 import LinksUteis from "./pages/LinksUteis";
 import BuscarPets from "./pages/BuscarPets";
 import Entrar from "./pages/Entrar";
+import VerPets from "./pages/VerPets";
+import VerProdutos from "./pages/VerProdutos";
+import VerONGs from "./pages/VerONGs";
+import VerEventos from "./pages/VerEventos";
+import VerClinicas from "./pages/VerClinicas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +34,11 @@ const App = () => (
           <Route path="/links-uteis" element={<LinksUteis />} />
           <Route path="/buscar-pets" element={<BuscarPets />} />
           <Route path="/entrar" element={<Entrar />} />
+          <Route path="/pets" element={<VerPets />} />
+          <Route path="/produtos" element={<VerProdutos />} />
+          <Route path="/ongs" element={<VerONGs />} />
+          <Route path="/eventos" element={<VerEventos />} />
+          <Route path="/clinicas" element={<VerClinicas />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
