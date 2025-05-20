@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Eye, MapPin, Heart, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
+import { shareContent } from '@/utils/shareUtils';
 
 export interface ProductCardProps {
   id: string;
@@ -17,6 +18,8 @@ export interface ProductCardProps {
 }
 
 const ProductCard = ({ id, title, category, image, price, location, views }: ProductCardProps) => {
+  const [isFavorite, setIsFavorite] = useState(false);
+
   const formattedPrice = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL'
@@ -25,25 +28,56 @@ const ProductCard = ({ id, title, category, image, price, location, views }: Pro
   const handleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log(`Favorited product: ${title}`);
-    // In a real app, this would save to user favorites
+    setIsFavorite(!isFavorite);
+    console.log(`${isFavorite ? 'Removed from' : 'Added to'} favorites: ${title}`);
+    
+    // In a real app with Supabase integration, we would save this to the user's favorites
+    const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+    const productFavorites = favorites.products || [];
+    
+    if (isFavorite) {
+      // Remove from favorites
+      const updatedFavorites = productFavorites.filter((productId: string) => productId !== id);
+      favorites.products = updatedFavorites;
+    } else {
+      // Add to favorites if not already there
+      if (!productFavorites.includes(id)) {
+        favorites.products = [...productFavorites, id];
+      }
+    }
+    
+    localStorage.setItem('favorites', JSON.stringify(favorites));
   };
 
   const handleShare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log(`Shared product: ${title}`);
-    // In a real app, this would open share dialog
+    const url = `${window.location.origin}/produto/${id}`;
+    shareContent(
+      title,
+      `Confira este produto: ${title} - ${formattedPrice}`,
+      url
+    );
   };
+
+  // Check if product is in favorites on component mount
+  React.useEffect(() => {
+    const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+    const productFavorites = favorites.products || [];
+    if (productFavorites.includes(id)) {
+      setIsFavorite(true);
+    }
+  }, [id]);
 
   return (
     <Link to={`/produto/${id}`}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 hover-scale h-full">
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 hover:scale-102 h-full">
         <div className="relative h-48">
           <img
             src={image}
             alt={title}
             className="w-full h-full object-cover"
+            loading="lazy"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.src = `https://via.placeholder.com/300x200?text=Produto`;
@@ -79,14 +113,19 @@ const ProductCard = ({ id, title, category, image, price, location, views }: Pro
               size="sm" 
               className="p-1 h-8 w-8"
               onClick={handleFavorite}
+              aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
             >
-              <Heart size={16} className="text-gray-500 hover:text-red-500" />
+              <Heart 
+                size={16} 
+                className={isFavorite ? "text-red-500 fill-red-500" : "text-gray-500 hover:text-red-500"} 
+              />
             </Button>
             <Button 
               variant="ghost" 
               size="sm" 
               className="p-1 h-8 w-8"
               onClick={handleShare}
+              aria-label="Compartilhar"
             >
               <Share2 size={16} className="text-gray-500 hover:text-blue-500" />
             </Button>

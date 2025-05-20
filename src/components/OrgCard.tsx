@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Eye, MapPin, Heart, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
+import { shareContent } from '@/utils/shareUtils';
 
 export interface OrgCardProps {
   id: string;
@@ -16,28 +17,61 @@ export interface OrgCardProps {
 }
 
 const OrgCard = ({ id, name, category, image, location, views }: OrgCardProps) => {
+  const [isFavorite, setIsFavorite] = useState(false);
+
   const handleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log(`Favorited organization: ${name}`);
-    // In a real app, this would save to user favorites
+    setIsFavorite(!isFavorite);
+    console.log(`${isFavorite ? 'Removed from' : 'Added to'} favorites: ${name}`);
+    
+    // In a real app with Supabase integration, we would save this to the user's favorites
+    const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+    const orgFavorites = favorites.organizations || [];
+    
+    if (isFavorite) {
+      // Remove from favorites
+      const updatedFavorites = orgFavorites.filter((orgId: string) => orgId !== id);
+      favorites.organizations = updatedFavorites;
+    } else {
+      // Add to favorites if not already there
+      if (!orgFavorites.includes(id)) {
+        favorites.organizations = [...orgFavorites, id];
+      }
+    }
+    
+    localStorage.setItem('favorites', JSON.stringify(favorites));
   };
 
   const handleShare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log(`Shared organization: ${name}`);
-    // In a real app, this would open share dialog
+    const url = `${window.location.origin}/ong/${id}`;
+    shareContent(
+      name,
+      `Confira essa organização: ${name} em ${location}`,
+      url
+    );
   };
+
+  // Check if organization is in favorites on component mount
+  React.useEffect(() => {
+    const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+    const orgFavorites = favorites.organizations || [];
+    if (orgFavorites.includes(id)) {
+      setIsFavorite(true);
+    }
+  }, [id]);
 
   return (
     <Link to={`/ong/${id}`}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 hover-scale h-full">
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 hover:scale-102 h-full">
         <div className="relative h-48">
           <img
             src={image}
             alt={name}
             className="w-full h-full object-cover"
+            loading="lazy"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.src = `https://via.placeholder.com/300x200?text=ONG`;
@@ -70,14 +104,19 @@ const OrgCard = ({ id, name, category, image, location, views }: OrgCardProps) =
               size="sm" 
               className="p-1 h-8 w-8"
               onClick={handleFavorite}
+              aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
             >
-              <Heart size={16} className="text-gray-500 hover:text-red-500" />
+              <Heart 
+                size={16} 
+                className={isFavorite ? "text-red-500 fill-red-500" : "text-gray-500 hover:text-red-500"} 
+              />
             </Button>
             <Button 
               variant="ghost" 
               size="sm" 
               className="p-1 h-8 w-8"
               onClick={handleShare}
+              aria-label="Compartilhar"
             >
               <Share2 size={16} className="text-gray-500 hover:text-blue-500" />
             </Button>
