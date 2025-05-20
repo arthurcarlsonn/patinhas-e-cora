@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,47 +10,118 @@ import { Button } from '@/components/ui/button';
 import { Package, Store, Settings, LogOut } from 'lucide-react';
 import EmpresaProductForm from '@/components/empresa/EmpresaProductForm';
 import EmpresaProfile from '@/components/empresa/EmpresaProfile';
+import { useAuth } from '@/contexts/AuthContext';
 
 const EmpresaDashboard = () => {
+  const { user, userType, signOut } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('produtos');
+  const [company, setCompany] = useState({
+    name: "",
+    email: "",
+    cnpj: "",
+    phone: "",
+    logo: "https://github.com/shadcn.png",
+    address: "",
+    website: "",
+    socialMedia: {
+      instagram: "",
+      facebook: ""
+    },
+    description: ""
+  });
   
-  // Check if user is logged in as business
+  // Verificar se o usuário está logado como empresa
   useEffect(() => {
-    const isBusinessUserLoggedIn = localStorage.getItem('businessUserLoggedIn') === 'true';
-    
-    if (!isBusinessUserLoggedIn) {
+    if (!user) {
       navigate('/empresas');
+      return;
     }
     
-    // Simulate loading delay
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 300);
+    if (userType !== 'company') {
+      navigate('/dashboard');
+      return;
+    }
     
-    return () => clearTimeout(timer);
-  }, [navigate]);
+    // Carregar dados da empresa
+    const fetchCompanyData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) throw error;
+        
+        if (data) {
+          setCompany({
+            name: data.company_name || '',
+            email: data.email || user.email || '',
+            cnpj: data.cnpj || '',
+            phone: data.phone || '',
+            logo: data.logo_url || 'https://github.com/shadcn.png',
+            address: data.address || '',
+            website: data.website || '',
+            socialMedia: {
+              instagram: '',
+              facebook: ''
+            },
+            description: data.description || ''
+          });
+        }
+      } catch (error: any) {
+        console.error('Erro ao carregar dados da empresa:', error);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível carregar os dados da sua empresa.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchCompanyData();
+  }, [user, navigate, userType, toast]);
   
-  // Mock company data - in a real application, this would come from a backend
-  const company = {
-    name: "Pet Shop Exemplo",
-    email: "contato@petshop.com",
-    cnpj: "12.345.678/0001-90",
-    phone: "(11) 98765-4321",
-    logo: "https://github.com/shadcn.png",
-    address: "Rua Exemplo, 123 - São Paulo, SP",
-    website: "www.petshopexemplo.com",
-    socialMedia: {
-      instagram: "@petshopexemplo",
-      facebook: "petshopexemplo"
-    },
-    description: "Loja especializada em produtos para pets com mais de 10 anos de experiência."
-  };
-  
-  const handleLogout = () => {
-    localStorage.removeItem('businessUserLoggedIn');
-    navigate('/empresas');
+  // Atualizar perfil da empresa
+  const updateCompany = async (updatedCompany: any) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .update({
+          company_name: updatedCompany.name,
+          email: updatedCompany.email,
+          phone: updatedCompany.phone,
+          address: updatedCompany.address,
+          website: updatedCompany.website,
+          description: updatedCompany.description,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user?.id);
+      
+      if (error) throw error;
+      
+      setCompany(updatedCompany);
+      toast({
+        title: 'Sucesso',
+        description: 'Os dados da sua empresa foram atualizados com sucesso!',
+      });
+    } catch (error: any) {
+      console.error('Erro ao atualizar dados da empresa:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar os dados da sua empresa.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   return (
@@ -70,7 +143,7 @@ const EmpresaDashboard = () => {
               <Button 
                 variant="outline" 
                 className="flex items-center gap-2"
-                onClick={handleLogout}
+                onClick={() => signOut()}
               >
                 <LogOut size={16} />
                 Sair
@@ -96,7 +169,11 @@ const EmpresaDashboard = () => {
               </TabsContent>
               
               <TabsContent value="perfil">
-                <EmpresaProfile company={company} />
+                <EmpresaProfile 
+                  company={company}
+                  isLoading={isLoading}
+                  updateCompany={updateCompany}
+                />
               </TabsContent>
             </Tabs>
           </div>

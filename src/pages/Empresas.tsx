@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
@@ -9,55 +9,56 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { LogIn, Building, ShieldCheck } from 'lucide-react';
 
 const Empresas = () => {
-  const { toast } = useToast();
+  const { signIn, signUp, user, userType, loading } = useAuth();
+  const navigate = useNavigate();
+  
+  // Estados para login
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  
+  // Estados para cadastro
   const [companyName, setCompanyName] = useState('');
   const [cnpj, setCnpj] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [registerEmail, setRegisterEmail] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  // Redirecionar se já estiver logado como empresa
+  useEffect(() => {
+    if (user && userType === 'company') {
+      navigate('/empresa/dashboard');
+    }
+  }, [user, userType, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    
-    // Simulação de login
-    setTimeout(() => {
-      setLoading(false);
-      
-      // Simulating a successful login
-      localStorage.setItem('businessUserLoggedIn', 'true');
-      toast({
-        title: "Login realizado com sucesso",
-        description: "Você foi autenticado como empresa!",
-      });
-      
-      // Redirect to business dashboard
-      window.location.href = '/empresa/dashboard';
-    }, 1500);
+    await signIn(email, password);
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     
-    // Simulação de registro
-    setTimeout(() => {
-      setLoading(false);
-      
-      // Simulating a successful registration
-      localStorage.setItem('businessUserLoggedIn', 'true');
-      toast({
-        title: "Cadastro realizado",
-        description: "Sua empresa foi cadastrada com sucesso! Verifique seu email para confirmar.",
-      });
-      
-      // Redirect to business dashboard
-      window.location.href = '/empresa/dashboard';
-    }, 1500);
+    if (registerPassword !== confirmPassword) {
+      alert("As senhas não coincidem!");
+      return;
+    }
+    
+    if (!acceptTerms) {
+      alert("Você precisa aceitar os termos de uso para se cadastrar.");
+      return;
+    }
+    
+    await signUp(
+      registerEmail,
+      registerPassword,
+      'company',
+      { company_name: companyName, cnpj }
+    );
   };
 
   return (
@@ -154,6 +155,8 @@ const Empresas = () => {
                         type="email" 
                         placeholder="empresa@exemplo.com" 
                         required
+                        value={registerEmail}
+                        onChange={(e) => setRegisterEmail(e.target.value)}
                       />
                     </div>
                     <div className="space-y-2">
@@ -163,6 +166,8 @@ const Empresas = () => {
                         type="password" 
                         placeholder="••••••••" 
                         required
+                        value={registerPassword}
+                        onChange={(e) => setRegisterPassword(e.target.value)}
                       />
                     </div>
                     <div className="space-y-2">
@@ -172,10 +177,17 @@ const Empresas = () => {
                         type="password" 
                         placeholder="••••••••" 
                         required
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
                       />
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="terms-business" required />
+                      <Checkbox 
+                        id="terms-business" 
+                        checked={acceptTerms}
+                        onCheckedChange={(checked) => setAcceptTerms(checked === true)}
+                        required
+                      />
                       <Label htmlFor="terms-business" className="text-sm">
                         Aceito os <Link to="/termos" className="text-pet-purple hover:underline">termos de uso</Link> e <Link to="/privacidade" className="text-pet-purple hover:underline">política de privacidade</Link>
                       </Label>

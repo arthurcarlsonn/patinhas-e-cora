@@ -1,24 +1,14 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Header = () => {
-  // Simula status de autenticação (em produção viria de um contexto de auth)
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, signOut, userType } = useAuth();
+  const isAuthenticated = !!user;
   
-  // Simula usuário logado (em produção viria de um contexto de auth)
-  const user = {
-    name: 'Usuário',
-    avatar: 'https://github.com/shadcn.png'
-  };
-
-  // Toggle para simular login/logout (remover em produção)
-  const toggleAuth = () => {
-    setIsAuthenticated(!isAuthenticated);
-  };
-
   return (
     <header className="bg-white shadow-sm py-4">
       <div className="container mx-auto px-4 flex items-center justify-between">
@@ -57,13 +47,17 @@ const Header = () => {
           
           {isAuthenticated ? (
             <div className="flex items-center space-x-4">
-              <Link to="/dashboard">
+              <Link to={userType === 'company' ? '/empresa/dashboard' : '/dashboard'}>
                 <Avatar className="cursor-pointer">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src="https://github.com/shadcn.png" alt={user.email || ''} />
+                  <AvatarFallback>{user.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
               </Link>
-              <Button variant="outline" onClick={toggleAuth} className="border-pet-purple text-pet-purple hover:bg-pet-purple hover:text-white font-medium rounded-full">
+              <Button 
+                variant="outline" 
+                onClick={() => signOut()} 
+                className="border-pet-purple text-pet-purple hover:bg-pet-purple hover:text-white font-medium rounded-full"
+              >
                 Sair
               </Button>
             </div>
@@ -71,7 +65,6 @@ const Header = () => {
             <Link to="/entrar">
               <Button 
                 variant="outline" 
-                onClick={toggleAuth} 
                 className="border-pet-purple text-pet-purple hover:bg-pet-purple hover:text-white font-medium rounded-full"
               >
                 Entrar

@@ -1,25 +1,31 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
 import ProfileTab from '@/components/dashboard/ProfileTab';
 import PetsTab from '@/components/dashboard/PetsTab';
 import FavoritesTab from '@/components/dashboard/FavoritesTab';
+import { useAuth } from '@/contexts/AuthContext';
 
 import { petsMock, productsMock, organizationsMock } from '@/data/mockData';
 
 const Dashboard = () => {
+  const { user, userType } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
   const [activeTab, setActiveTab] = useState('perfil');
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Simulação de dados do usuário (em produção viria do backend)
-  const [user, setUser] = useState({
-    name: 'Usuário da Silva',
-    email: 'usuario@email.com',
-    phone: '(11) 98765-4321',
-    avatar: 'https://github.com/shadcn.png',
-    bio: 'Amante de animais e defensor da causa animal.',
+  const [profile, setProfile] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    avatar: '',
+    bio: '',
   });
   
   const [favorites, setFavorites] = useState<{
@@ -32,8 +38,51 @@ const Dashboard = () => {
     organizations: [],
   });
 
-  // Load favorites from localStorage
+  // Verificar se o usuário está logado como usuário comum
   useEffect(() => {
+    if (!user) {
+      navigate('/entrar');
+      return;
+    }
+    
+    if (userType === 'company') {
+      navigate('/empresa/dashboard');
+      return;
+    }
+    
+    // Carregar dados do perfil
+    const fetchProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) throw error;
+        
+        if (data) {
+          setProfile({
+            name: data.name || '',
+            email: data.email || user.email || '',
+            phone: data.phone || '',
+            avatar: data.avatar_url || 'https://github.com/shadcn.png',
+            bio: data.bio || '',
+          });
+        }
+      } catch (error: any) {
+        console.error('Erro ao carregar perfil:', error);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível carregar seu perfil.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Carregar favoritos do localStorage (em produção viria do Supabase)
     const storedFavorites = JSON.parse(localStorage.getItem('favorites') || '{}');
     setFavorites({
       pets: storedFavorites.pets || [],
@@ -41,13 +90,41 @@ const Dashboard = () => {
       organizations: storedFavorites.organizations || [],
     });
     
-    // Simulate loading delay
-    const timer = setTimeout(() => {
+    fetchProfile();
+  }, [user, navigate, userType, toast]);
+  
+  // Atualizar perfil
+  const updateProfile = async (updatedProfile: any) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: updatedProfile.name,
+          phone: updatedProfile.phone,
+          bio: updatedProfile.bio,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user?.id);
+      
+      if (error) throw error;
+      
+      setProfile(updatedProfile);
+      toast({
+        title: 'Sucesso',
+        description: 'Seu perfil foi atualizado com sucesso!',
+      });
+    } catch (error: any) {
+      console.error('Erro ao atualizar perfil:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar seu perfil.',
+        variant: 'destructive',
+      });
+    } finally {
       setIsLoading(false);
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, []);
+    }
+  };
   
   // Filtragem baseada em IDs salvos no localStorage
   const userPets = petsMock.slice(0, 3); // Simulando que os 3 primeiros pets são do usuário
@@ -71,7 +148,7 @@ const Dashboard = () => {
             {/* Sidebar */}
             <div className="md:w-1/4">
               <DashboardSidebar 
-                user={user} 
+                user={profile} 
                 activeTab={activeTab} 
                 setActiveTab={setActiveTab} 
               />
@@ -83,8 +160,8 @@ const Dashboard = () => {
                 {activeTab === 'perfil' && (
                   <ProfileTab 
                     isLoading={isLoading}
-                    user={user}
-                    setUser={setUser}
+                    user={profile}
+                    setUser={updateProfile}
                   />
                 )}
                 
