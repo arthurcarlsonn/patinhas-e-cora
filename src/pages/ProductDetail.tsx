@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { productsMock } from '@/data/mockData';
-import { MapPin, Eye, Phone, Mail, Share2, Tag, Truck, FileText, MessageCircle } from 'lucide-react';
+import { MapPin, Eye, Phone, Mail, Share2, Tag, Truck, FileText, MessageCircle, Globe, Facebook, Instagram } from 'lucide-react';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();

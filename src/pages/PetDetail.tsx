@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { petsMock } from '@/data/mockData';
-import { MapPin, Clock, Eye, Phone, Mail, Share2, Ruler, GenderMale, GenderFemale, PawPrint, ShieldCheck, Child, Users } from 'lucide-react';
+import { MapPin, Clock, Eye, Phone, Mail, Share2, Ruler, Male, Female, PawPrint, ShieldCheck, Baby, Users } from 'lucide-react';
 
 const PetDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -125,10 +125,10 @@ const PetDetail = () => {
                   </div>
                   <div className="flex items-center text-gray-700">
                     {enhancedPet.genero === 'Macho' ? (
-                      <><GenderMale size={16} className="mr-2 text-blue-500" />
+                      <><Male size={16} className="mr-2 text-blue-500" />
                       <span>Macho</span></>
                     ) : (
-                      <><GenderFemale size={16} className="mr-2 text-pink-500" />
+                      <><Female size={16} className="mr-2 text-pink-500" />
                       <span>Fêmea</span></>
                     )}
                   </div>
@@ -148,7 +148,7 @@ const PetDetail = () => {
                       {enhancedPet.vacinasEmDia ? "Vacinas em dia" : "Vacinas pendentes"}
                     </Badge>
                     <Badge variant={enhancedPet.aceitaCriancas ? "default" : "outline"} className={enhancedPet.aceitaCriancas ? "bg-blue-100 text-blue-800 border-blue-200" : ""}>
-                      <Child size={14} className="mr-1" />
+                      <Baby size={14} className="mr-1" />
                       {enhancedPet.aceitaCriancas ? "Aceita crianças" : "Não aceita crianças"}
                     </Badge>
                     <Badge variant={enhancedPet.aceitaOutrosAnimais ? "default" : "outline"} className={enhancedPet.aceitaOutrosAnimais ? "bg-blue-100 text-blue-800 border-blue-200" : ""}>
