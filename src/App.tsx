@@ -10,6 +10,8 @@ import QuemSomos from "./pages/QuemSomos";
 import LinksUteis from "./pages/LinksUteis";
 import BuscarPets from "./pages/BuscarPets";
 import Entrar from "./pages/Entrar";
+import Empresas from "./pages/Empresas";
+import EmpresaDashboard from "./pages/EmpresaDashboard";
 import VerPets from "./pages/VerPets";
 import VerProdutos from "./pages/VerProdutos";
 import VerONGs from "./pages/VerONGs";
@@ -38,6 +40,8 @@ const App = () => (
           <Route path="/links-uteis" element={<LinksUteis />} />
           <Route path="/buscar-pets" element={<BuscarPets />} />
           <Route path="/entrar" element={<Entrar />} />
+          <Route path="/empresas" element={<Empresas />} />
+          <Route path="/empresa/dashboard" element={<EmpresaDashboard />} />
           <Route path="/pets" element={<VerPets />} />
           <Route path="/produtos" element={<VerProdutos />} />
           <Route path="/ongs" element={<VerONGs />} />
