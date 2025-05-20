@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -11,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { shareContent } from '@/utils/shareUtils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { IncrementViewsParams } from '@/integrations/supabase/types-extended';
 
 interface Event {
   id: string;
@@ -43,7 +43,7 @@ const EventDetail = () => {
         await supabase.rpc('increment_views', { 
           table_name: 'events',
           row_id: id 
-        } as any).then(result => {
+        } as IncrementViewsParams).then(result => {
           if (result.error) {
             console.error("Erro ao incrementar visualizações:", result.error);
           }
