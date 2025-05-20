@@ -81,3 +81,36 @@
 .hover-scale {
   @apply transition-transform duration-200 hover:scale-105;
 }
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  @apply opacity-0 animate-fade-in;
+  animation-duration: 0.5s;
+  animation-fill-mode: forwards;
+}
+
+@keyframes fade-in {
+  '0%': {
+    opacity: '0',
+    transform: 'translateY(10px)'
+  },
+  '100%': {
+    opacity: '1',
+    transform: 'translateY(0)'
+  }
+}
