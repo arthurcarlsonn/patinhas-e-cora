@@ -76,7 +76,6 @@ const OngEventList = () => {
       } catch (error) {
         console.error('Erro ao buscar eventos:', error);
         toast({
-          title: 'Erro',
           description: 'Não foi possível carregar seus eventos',
           variant: 'destructive'
         });
@@ -106,13 +105,11 @@ const OngEventList = () => {
       setEvents(prev => prev.filter(event => event.id !== eventId));
       
       toast({
-        title: 'Evento excluído',
         description: 'O evento foi removido com sucesso'
       });
     } catch (error: any) {
       console.error('Erro ao excluir evento:', error);
       toast({
-        title: 'Erro',
         description: 'Não foi possível excluir o evento',
         variant: 'destructive'
       });

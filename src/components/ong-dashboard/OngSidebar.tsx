@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Heart, Settings, CalendarPlus, Calendar } from 'lucide-react';
+import { Heart, Settings, CalendarPlus, Calendar, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface OngSidebarProps {
@@ -15,7 +15,7 @@ interface OngSidebarProps {
 }
 
 const OngSidebar = ({ activeTab, setActiveTab, organization }: OngSidebarProps) => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
@@ -67,6 +67,17 @@ const OngSidebar = ({ activeTab, setActiveTab, organization }: OngSidebarProps) 
           Novo Evento
         </Button>
       </nav>
+      
+      <div className="mt-6 pt-6 border-t border-gray-200">
+        <Button 
+          variant="outline" 
+          className="w-full justify-start text-red-500 hover:text-red-700 hover:bg-red-50"
+          onClick={signOut}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sair
+        </Button>
+      </div>
     </div>
   );
 };

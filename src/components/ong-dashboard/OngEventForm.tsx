@@ -49,7 +49,6 @@ const OngEventForm = () => {
       } catch (error) {
         console.error('Erro ao buscar organizações:', error);
         toast({
-          title: 'Erro',
           description: 'Não foi possível carregar suas organizações',
           variant: 'destructive'
         });
@@ -71,7 +70,6 @@ const OngEventForm = () => {
     
     if (!user || !selectedOrgId) {
       toast({
-        title: "Erro",
         description: "Você precisa selecionar uma organização para criar um evento",
         variant: "destructive"
       });
@@ -110,8 +108,7 @@ const OngEventForm = () => {
       if (error) throw error;
 
       toast({
-        title: "Evento criado com sucesso!",
-        description: "Seu evento foi publicado.",
+        description: "Seu evento foi publicado com sucesso!",
       });
 
       // Limpar formulário
@@ -128,7 +125,6 @@ const OngEventForm = () => {
     } catch (error: any) {
       console.error('Erro ao cadastrar evento:', error);
       toast({
-        title: "Erro ao criar evento",
         description: error.message || "Não foi possível publicar seu evento. Tente novamente.",
         variant: "destructive"
       });

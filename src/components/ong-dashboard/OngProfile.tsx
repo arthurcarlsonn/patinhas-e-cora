@@ -55,7 +55,7 @@ const OngProfile = () => {
           setOrganization(data);
           
           // Processar redes sociais se existirem
-          if (data.social_media) {
+          if (data.social_media && typeof data.social_media === 'object') {
             setSocialMedia({
               instagram: data.social_media.instagram || '',
               facebook: data.social_media.facebook || ''
@@ -89,13 +89,11 @@ const OngProfile = () => {
       if (error) throw error;
 
       toast({
-        title: "Perfil atualizado",
         description: "Suas informações foram salvas com sucesso",
       });
     } catch (error: any) {
       console.error('Erro ao salvar:', error);
       toast({
-        title: "Erro ao salvar",
         description: error.message || "Ocorreu um erro ao salvar os dados",
         variant: "destructive"
       });
