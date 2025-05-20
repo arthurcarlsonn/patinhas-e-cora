@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { petsMock } from '@/data/mockData';
-import { MapPin, Clock, Eye, Phone, Mail, Share2, Ruler, Mars, Venus, PawPrint, ShieldCheck, Baby, Users } from 'lucide-react';
+import { MapPin, Clock, Eye, Phone, Mail, Share2, Ruler, PawPrint, ShieldCheck, Baby, Users } from 'lucide-react';
 
 const PetDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -124,11 +125,15 @@ const PetDetail = () => {
                   </div>
                   <div className="flex items-center text-gray-700">
                     {enhancedPet.genero === 'Macho' ? (
-                      <><Mars size={16} className="mr-2 text-blue-500" />
-                      <span>Macho</span></>
+                      <div className="flex items-center">
+                        <span className="mr-2 text-blue-500 text-lg">♂</span>
+                        <span>Macho</span>
+                      </div>
                     ) : (
-                      <><Venus size={16} className="mr-2 text-pink-500" />
-                      <span>Fêmea</span></>
+                      <div className="flex items-center">
+                        <span className="mr-2 text-pink-500 text-lg">♀</span>
+                        <span>Fêmea</span>
+                      </div>
                     )}
                   </div>
                   <div className="flex items-center text-gray-700">

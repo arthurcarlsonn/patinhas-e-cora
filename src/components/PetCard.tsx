@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Eye, MapPin, Clock, Heart, Share2, Mars, Venus } from 'lucide-react';
+import { Eye, MapPin, Clock, Heart, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
 import { shareContent } from '@/utils/shareUtils';
@@ -128,8 +128,8 @@ const PetCard = ({
               className="absolute bottom-2 right-2 bg-white/80 text-gray-700 border border-gray-300"
             >
               {genero === 'Macho' ? 
-                <Mars size={14} className="text-blue-500" /> : 
-                <Venus size={14} className="text-pink-500" />
+                <span className="text-blue-500">♂</span> : 
+                <span className="text-pink-500">♀</span>
               }
             </Badge>
           )}
