@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -8,11 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { MapPin, Clock, Eye, Phone, Mail, Share2, Ruler, PawPrint, ShieldCheck, Baby, Users } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const PetDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [pet, setPet] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchPet = async () => {
@@ -20,6 +21,7 @@ const PetDetail = () => {
       
       try {
         setIsLoading(true);
+        console.log("Fetching pet with ID:", id);
         
         const { data, error } = await supabase
           .from('pets')
@@ -28,10 +30,18 @@ const PetDetail = () => {
           .single();
         
         if (error) {
+          console.error("Error fetching pet:", error);
+          toast({
+            title: "Erro",
+            description: "Não foi possível carregar as informações do pet",
+            variant: "destructive",
+          });
           throw error;
         }
         
         if (data) {
+          console.log("Pet data found:", data);
+          
           // Incrementar visualizações
           await supabase
             .from('pets')
@@ -60,6 +70,13 @@ const PetDetail = () => {
             descricao: data.description,
             contactWhatsapp: data.contact_whatsapp,
           });
+        } else {
+          console.log("No pet found with ID:", id);
+          toast({
+            title: "Pet não encontrado",
+            description: "O pet que você está procurando não existe ou foi removido.",
+            variant: "destructive",
+          });
         }
       } catch (error) {
         console.error('Erro ao buscar dados do pet:', error);
@@ -69,7 +86,7 @@ const PetDetail = () => {
     };
     
     fetchPet();
-  }, [id]);
+  }, [id, toast]);
 
   if (isLoading) {
     return (

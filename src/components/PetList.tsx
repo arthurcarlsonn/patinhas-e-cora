@@ -35,6 +35,7 @@ const PetList = ({
     const fetchPets = async () => {
       setIsLoading(true);
       try {
+        console.log("Fetching pets with status:", status);
         let query = supabase
           .from('pets')
           .select('*')
@@ -53,6 +54,7 @@ const PetList = ({
         }
 
         if (data) {
+          console.log("Pets data received:", data);
           // Converter dados do banco para o formato do PetCard
           const formattedPets: PetCardProps[] = data.map(pet => ({
             id: pet.id,

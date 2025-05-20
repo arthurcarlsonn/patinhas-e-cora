@@ -56,6 +56,7 @@ const Dashboard = () => {
     // Carregar dados do perfil
     const fetchProfile = async () => {
       try {
+        console.log("Fetching profile for user:", user.id);
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -65,6 +66,7 @@ const Dashboard = () => {
         if (error) throw error;
         
         if (data) {
+          console.log("Profile data:", data);
           setProfile({
             name: data.name || '',
             email: data.email || user.email || '',
@@ -88,6 +90,7 @@ const Dashboard = () => {
     // Buscar os pets do usuário
     const fetchUserPets = async () => {
       try {
+        console.log("Fetching pets for user:", user.id);
         const { data, error } = await supabase
           .from('pets')
           .select('*')
@@ -96,6 +99,7 @@ const Dashboard = () => {
         if (error) throw error;
         
         if (data) {
+          console.log("User pets:", data);
           // Convertendo para o formato do PetCard
           const formattedPets = data.map(pet => ({
             id: pet.id,

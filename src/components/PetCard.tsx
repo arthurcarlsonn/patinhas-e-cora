@@ -94,8 +94,9 @@ const PetCard = ({
     );
   };
 
-  // Modificar para navegar diretamente para a página de detalhes
+  // Modified to print debug info and ensure correct navigation
   const handleCardClick = () => {
+    console.log("Navigating to pet detail with ID:", id);
     navigate(`/pet/${id}`);
   };
 
