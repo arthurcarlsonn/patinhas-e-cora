@@ -40,7 +40,7 @@ const EventDetail = () => {
       setLoading(true);
       try {
         // Increment views with proper typing
-        const incrementParams = {
+        const incrementParams: IncrementViewsParams = {
           table_name: 'events',
           row_id: id
         };
