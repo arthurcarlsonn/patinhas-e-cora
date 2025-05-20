@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -39,13 +40,13 @@ const EventDetail = () => {
     const fetchEventData = async () => {
       setLoading(true);
       try {
-        // Incrementar visualizações - fixed type assertion
+        // Incrementar visualizações - use type assertion with any
         const incrementResult = await supabase.rpc(
           'increment_views', 
           { 
             table_name: 'events',
             row_id: id 
-          } as unknown as Record<string, unknown>
+          } as any
         );
         
         if (incrementResult.error) {

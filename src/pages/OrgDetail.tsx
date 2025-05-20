@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -56,13 +57,13 @@ const OrgDetail = () => {
     const fetchOrgData = async () => {
       setLoading(true);
       try {
-        // Incrementar visualizações - fixed type assertion
+        // Incrementar visualizações - use type assertion with any
         const incrementResult = await supabase.rpc(
           'increment_views', 
           { 
             table_name: 'organizations',
             row_id: id 
-          } as unknown as Record<string, unknown>
+          } as any
         );
         
         if (incrementResult.error) {

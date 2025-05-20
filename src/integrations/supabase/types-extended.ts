@@ -9,3 +9,8 @@ export interface IncrementViewsParams {
 
 // Export a generic type for RPC functions to help TypeScript understand the structure
 export type RPCFunction<T> = (params: T) => Promise<any>;
+
+// Define additional type to help with Supabase RPC calls
+export type PostgrestRPC<T> = {
+  params: T;
+};
