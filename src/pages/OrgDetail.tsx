@@ -12,6 +12,7 @@ import EventCard from '@/components/EventCard';
 import { shareContent } from '@/utils/shareUtils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Json } from '@/integrations/supabase/types';
 
 interface Organization {
   id: string;
@@ -59,8 +60,10 @@ const OrgDetail = () => {
         await supabase.rpc('increment_views', { 
           table_name: 'organizations',
           row_id: id 
-        }).catch(error => {
-          console.error("Erro ao incrementar visualizações:", error);
+        }).then(result => {
+          if (result.error) {
+            console.error("Erro ao incrementar visualizações:", result.error);
+          }
         });
 
         // Buscar dados da organização
@@ -76,7 +79,12 @@ const OrgDetail = () => {
         }
 
         if (data) {
-          setOrg(data);
+          // Transform the data to match the Organization interface
+          const orgData: Organization = {
+            ...data,
+            social_media: data.social_media as { instagram?: string; facebook?: string; }
+          };
+          setOrg(orgData);
 
           // Buscar eventos da organização
           const { data: eventsData, error: eventsError } = await supabase
