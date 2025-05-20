@@ -17,8 +17,8 @@ const BuscarPets = () => {
   const [currentTab, setCurrentTab] = useState('todos');
   
   const filterOptions = [
-    { label: 'Perdidos', value: 'perdidos' },
-    { label: 'Encontrados', value: 'encontrados' },
+    { label: 'Perdidos', value: 'perdido' },
+    { label: 'Encontrados', value: 'encontrado' },
     { label: 'Para adoção', value: 'adocao' },
     { label: 'Cachorros', value: 'cachorro' },
     { label: 'Gatos', value: 'gato' }
@@ -34,8 +34,8 @@ const BuscarPets = () => {
 
   const tabs = [
     { id: 'todos', label: 'Todos' },
-    { id: 'perdidos', label: 'Perdidos' },
-    { id: 'encontrados', label: 'Encontrados' },
+    { id: 'perdido', label: 'Perdidos' },
+    { id: 'encontrado', label: 'Encontrados' },
     { id: 'adocao', label: 'Para adoção' }
   ];
 
@@ -48,11 +48,11 @@ const BuscarPets = () => {
       pet.location.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Filtragem por categoria (tab)
-    const matchesTab = currentTab === 'todos' || pet.category === currentTab;
+    const matchesTab = currentTab === 'todos' || pet.status === currentTab;
 
     // Filtragem por filtros ativos
     const matchesFilters = activeFilters.length === 0 || 
-      (activeFilters.includes(pet.category) || activeFilters.includes(pet.type.toLowerCase()));
+      (activeFilters.includes(pet.status) || activeFilters.includes(pet.type.toLowerCase()));
 
     return matchesSearch && matchesTab && matchesFilters;
   });
@@ -157,12 +157,12 @@ const BuscarPets = () => {
                               />
                               <Badge 
                                 className={`absolute top-2 right-2 
-                                  ${pet.category === 'perdidos' ? 'bg-red-500' : 
-                                    pet.category === 'encontrados' ? 'bg-yellow-500' : 
+                                  ${pet.status === 'perdido' ? 'bg-red-500' : 
+                                    pet.status === 'encontrado' ? 'bg-yellow-500' : 
                                     'bg-green-500'}`}
                               >
-                                {pet.category === 'perdidos' ? 'Perdido' : 
-                                  pet.category === 'encontrados' ? 'Encontrado' : 'Para Adoção'}
+                                {pet.status === 'perdido' ? 'Perdido' : 
+                                  pet.status === 'encontrado' ? 'Encontrado' : 'Para Adoção'}
                               </Badge>
                             </div>
                             <CardContent className="p-4">
@@ -174,7 +174,7 @@ const BuscarPets = () => {
                               </div>
                               <p className="text-sm text-gray-500 mb-2">{pet.location}</p>
                               <div className="flex justify-between text-xs text-gray-500">
-                                <span>{pet.time}</span>
+                                <span>{pet.timeRegistered}</span>
                                 <span>{pet.views} visualizações</span>
                               </div>
                             </CardContent>
