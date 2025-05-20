@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Eye, MapPin, Heart, Share2 } from 'lucide-react';
+import { Eye, MapPin, Heart, Share2, Truck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
 import { shareContent } from '@/utils/shareUtils';
@@ -15,9 +15,26 @@ export interface ProductCardProps {
   price: number;
   location: string;
   views: number;
+  // Extended fields
+  description?: string;
+  atendimentoDomicilio?: boolean;
+  vendedor?: {
+    nome: string;
+    telefone: string;
+    email: string;
+  };
 }
 
-const ProductCard = ({ id, title, category, image, price, location, views }: ProductCardProps) => {
+const ProductCard = ({ 
+  id, 
+  title, 
+  category, 
+  image, 
+  price, 
+  location, 
+  views,
+  atendimentoDomicilio
+}: ProductCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
 
   const formattedPrice = new Intl.NumberFormat('pt-BR', {
@@ -86,13 +103,27 @@ const ProductCard = ({ id, title, category, image, price, location, views }: Pro
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
             <p className="text-white font-bold">{formattedPrice}</p>
           </div>
+          
+          {/* Badge para categoria */}
+          <Badge 
+            className="absolute top-2 right-2 bg-blue-100 text-blue-800 border-blue-200"
+          >
+            {category}
+          </Badge>
+          
+          {/* Badge para entrega */}
+          {atendimentoDomicilio && (
+            <Badge 
+              className="absolute top-10 right-2 bg-green-100 text-green-800 border-green-200"
+            >
+              <Truck size={12} className="mr-1" />
+              Entrega
+            </Badge>
+          )}
         </div>
         
         <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <h3 className="font-medium text-lg">{title}</h3>
-            <Badge variant="outline">{category}</Badge>
-          </div>
+          <h3 className="font-medium text-lg line-clamp-2">{title}</h3>
         </CardHeader>
         
         <CardContent className="pb-2">

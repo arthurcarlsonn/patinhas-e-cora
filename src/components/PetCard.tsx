@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Eye, MapPin, Clock, Heart, Share2 } from 'lucide-react';
+import { Eye, MapPin, Clock, Heart, Share2, GenderMale, GenderFemale } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
 import { shareContent } from '@/utils/shareUtils';
@@ -16,6 +16,17 @@ export interface PetCardProps {
   location: string;
   timeRegistered: string;
   views: number;
+  // Extended fields (these would come from the database in a real app)
+  raca?: string;
+  idade?: string;
+  genero?: 'Macho' | 'Fêmea';
+  porte?: 'Pequeno' | 'Médio' | 'Grande';
+  cor?: string;
+  temperamento?: string;
+  castrado?: boolean;
+  vacinasEmDia?: boolean;
+  aceitaCriancas?: boolean;
+  aceitaOutrosAnimais?: boolean;
 }
 
 const statusColors = {
@@ -30,7 +41,20 @@ const statusLabels = {
   adocao: 'Para Adoção',
 };
 
-const PetCard = ({ id, name, type, status, image, location, timeRegistered, views }: PetCardProps) => {
+const PetCard = ({ 
+  id, 
+  name, 
+  type, 
+  status, 
+  image, 
+  location, 
+  timeRegistered, 
+  views,
+  raca, 
+  idade,
+  genero,
+  porte
+}: PetCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
 
   const handleFavorite = (e: React.MouseEvent) => {
@@ -97,6 +121,18 @@ const PetCard = ({ id, name, type, status, image, location, timeRegistered, view
           >
             {statusLabels[status]}
           </Badge>
+          
+          {/* Add gender badge if available */}
+          {genero && (
+            <Badge 
+              className="absolute bottom-2 right-2 bg-white/80 text-gray-700 border border-gray-300"
+            >
+              {genero === 'Macho' ? 
+                <GenderMale size={14} className="text-blue-500" /> : 
+                <GenderFemale size={14} className="text-pink-500" />
+              }
+            </Badge>
+          )}
         </div>
         
         <CardHeader className="pb-2">
@@ -104,6 +140,13 @@ const PetCard = ({ id, name, type, status, image, location, timeRegistered, view
             <h3 className="font-medium text-lg">{name}</h3>
             <Badge variant="outline">{type}</Badge>
           </div>
+          {(raca || porte) && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {raca && <span className="text-xs text-gray-600">{raca}</span>}
+              {raca && porte && <span className="text-xs text-gray-400 mx-1">•</span>}
+              {porte && <span className="text-xs text-gray-600">Porte {porte}</span>}
+            </div>
+          )}
         </CardHeader>
         
         <CardContent className="pb-2">
@@ -115,6 +158,11 @@ const PetCard = ({ id, name, type, status, image, location, timeRegistered, view
             <Clock size={14} className="mr-1" />
             <span>{timeRegistered}</span>
           </div>
+          {idade && (
+            <div className="mt-1 text-sm text-gray-500">
+              Idade: {idade}
+            </div>
+          )}
         </CardContent>
         
         <CardFooter className="pt-0 flex justify-between items-center">

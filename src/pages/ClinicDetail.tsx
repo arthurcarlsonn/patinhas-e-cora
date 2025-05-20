@@ -5,8 +5,9 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { clinicsMock } from '@/data/mockData';
-import { MapPin, Eye, Phone, Mail, Share2, Clock, Calendar } from 'lucide-react';
+import { MapPin, Clock, Eye, Phone, Mail, Share2, Globe, Calendar, FileText, MessageCircle, Instagram, Facebook } from 'lucide-react';
 
 const ClinicDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +29,41 @@ const ClinicDetail = () => {
     );
   }
 
+  // Enhanced clinic data (in a real app, this would come from the database)
+  const enhancedClinic = {
+    ...clinic,
+    description: `${clinic.name} é uma clínica veterinária completa. Oferecemos serviços de consultas, exames, cirurgias, vacinação e muito mais para garantir a saúde e bem-estar do seu pet.`,
+    horarioFuncionamento: "Segunda a Sexta: 08h às 18h | Sábado: 08h às 12h",
+    servicos: [
+      "Consultas",
+      "Exames laboratoriais",
+      "Cirurgias",
+      "Vacinação",
+      "Emergência 24h"
+    ],
+    especialidades: [
+      "Dermatologia",
+      "Cardiologia",
+      "Ortopedia",
+      "Odontologia"
+    ],
+    whatsapp: "(11) 98765-4321",
+    telefone: "(11) 3456-7890",
+    email: `contato@${clinic.name.toLowerCase().replace(/\s/g, '').replace(/[^\w\s]/gi, '')}.com.br`,
+    website: `www.${clinic.name.toLowerCase().replace(/\s/g, '').replace(/[^\w\s]/gi, '')}.com.br`,
+    socialMedia: {
+      instagram: `@${clinic.name.toLowerCase().replace(/\s/g, '').replace(/[^\w\s]/gi, '')}`,
+      facebook: `/${clinic.name.toLowerCase().replace(/\s/g, '').replace(/[^\w\s]/gi, '')}`
+    },
+    veterinarios: [
+      { nome: "Dr. Carlos Silva", especialidade: "Clínico Geral" },
+      { nome: "Dra. Ana Oliveira", especialidade: "Dermatologia" }
+    ],
+    endereco: `Rua das Flores, 123 - ${clinic.location}`,
+    atendimentoDomicilio: Math.random() > 0.5,
+    possuiEstacionamento: Math.random() > 0.5,
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -47,7 +83,7 @@ const ClinicDetail = () => {
                       target.src = `https://via.placeholder.com/600x400?text=${clinic.name}`;
                     }}
                   />
-                  <Badge className="absolute top-4 right-4 bg-teal-100 text-teal-800 border border-teal-200">
+                  <Badge className="absolute top-4 right-4 bg-blue-100 text-blue-800 border border-blue-200">
                     {clinic.category}
                   </Badge>
                 </div>
@@ -62,12 +98,12 @@ const ClinicDetail = () => {
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center text-gray-600">
                     <MapPin size={18} className="mr-2" />
-                    <span>{clinic.location}</span>
+                    <span>{enhancedClinic.endereco}</span>
                   </div>
                   
                   <div className="flex items-center text-gray-600">
                     <Clock size={18} className="mr-2" />
-                    <span>Segunda a Sexta: 08:00 - 18:00 | Sábado: 08:00 - 12:00</span>
+                    <span>{enhancedClinic.horarioFuncionamento}</span>
                   </div>
                   
                   <div className="flex items-center text-gray-600">
@@ -76,25 +112,65 @@ const ClinicDetail = () => {
                   </div>
                 </div>
                 
-                <div className="mt-8">
-                  <h2 className="text-xl font-semibold mb-2">Sobre a Clínica</h2>
-                  <p className="text-gray-600">
-                    {/* Simulação de descrição, em produção viria do banco de dados */}
-                    {clinic.name} oferece serviços veterinários de alta qualidade com profissionais especializados.
-                    Contamos com equipamentos modernos e instalações confortáveis para garantir o melhor atendimento para o seu pet.
-                    {clinic.category === 'Hospital' && " Atendimento 24 horas para emergências veterinárias."}
-                  </p>
+                <div className="mt-4">
+                  {enhancedClinic.atendimentoDomicilio && (
+                    <Badge className="bg-green-100 text-green-800 border-green-200 mr-2">
+                      Atendimento a domicílio
+                    </Badge>
+                  )}
+                  {enhancedClinic.possuiEstacionamento && (
+                    <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+                      Estacionamento
+                    </Badge>
+                  )}
                 </div>
                 
                 <div className="mt-8">
-                  <h2 className="text-xl font-semibold mb-2">Serviços</h2>
+                  <h2 className="text-xl font-semibold mb-2">Sobre a Clínica</h2>
+                  <p className="text-gray-600">
+                    {enhancedClinic.description}
+                  </p>
+                </div>
+
+                {/* Serviços */}
+                <div className="mt-6">
+                  <h3 className="font-medium text-gray-800 mb-2">Serviços</h3>
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">Consultas</Badge>
-                    <Badge variant="outline">Vacinas</Badge>
-                    <Badge variant="outline">Exames</Badge>
-                    <Badge variant="outline">Cirurgias</Badge>
-                    {clinic.category === 'Hospital' && <Badge variant="outline">Emergência 24h</Badge>}
-                    <Badge variant="outline">Banho & Tosa</Badge>
+                    {enhancedClinic.servicos.map((servico, index) => (
+                      <Badge key={index} variant="outline">
+                        {servico}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Especialidades */}
+                <div className="mt-4">
+                  <h3 className="font-medium text-gray-800 mb-2">Especialidades</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {enhancedClinic.especialidades.map((especialidade, index) => (
+                      <Badge key={index} variant="outline" className="border-pet-purple text-pet-purple">
+                        {especialidade}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Veterinários */}
+                <div className="mt-6">
+                  <h3 className="font-medium text-gray-800 mb-3">Veterinários</h3>
+                  <div className="space-y-3">
+                    {enhancedClinic.veterinarios.map((vet, index) => (
+                      <div key={index} className="flex items-center">
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback>{vet.nome.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                        </Avatar>
+                        <div className="ml-3">
+                          <p className="font-medium text-gray-800">{vet.nome}</p>
+                          <p className="text-sm text-gray-600">{vet.especialidade}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 
@@ -103,11 +179,33 @@ const ClinicDetail = () => {
                   <div className="space-y-3">
                     <div className="flex items-center text-gray-600">
                       <Phone size={16} className="mr-2" />
-                      <span>(11) 3456-7890</span>
+                      <span>{enhancedClinic.telefone}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600">
+                      <Phone size={16} className="mr-2" />
+                      <span>{enhancedClinic.whatsapp} (WhatsApp)</span>
                     </div>
                     <div className="flex items-center text-gray-600">
                       <Mail size={16} className="mr-2" />
-                      <span>contato@{clinic.name.toLowerCase().replace(/\s/g, '')}.com.br</span>
+                      <span>{enhancedClinic.email}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600">
+                      <Globe size={16} className="mr-2" />
+                      <a href="#" className="text-[#5D23BE] hover:underline">{enhancedClinic.website}</a>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Redes sociais */}
+                <div className="mt-4">
+                  <div className="flex space-x-4">
+                    <div className="flex items-center text-gray-600">
+                      <Instagram size={16} className="mr-1 text-pink-600" />
+                      <span>{enhancedClinic.socialMedia.instagram}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600">
+                      <Facebook size={16} className="mr-1 text-blue-600" />
+                      <span>{enhancedClinic.socialMedia.facebook}</span>
                     </div>
                   </div>
                 </div>
@@ -117,7 +215,14 @@ const ClinicDetail = () => {
                     <Calendar size={16} className="mr-2" />
                     Agendar Consulta
                   </Button>
-                  <Button variant="outline">Entrar em Contato</Button>
+                  <Button variant="outline" className="flex items-center">
+                    <MessageCircle size={16} className="mr-2" />
+                    Enviar Mensagem
+                  </Button>
+                  <Button variant="outline" className="flex items-center">
+                    <FileText size={16} className="mr-2" />
+                    Ver Documentos
+                  </Button>
                   <Button variant="outline" className="flex items-center">
                     <Share2 size={16} className="mr-2" />
                     Compartilhar

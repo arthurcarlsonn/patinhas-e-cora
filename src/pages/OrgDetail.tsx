@@ -6,7 +6,7 @@ import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { organizationsMock } from '@/data/mockData';
-import { MapPin, Eye, Phone, Mail, Share2, Globe, Heart } from 'lucide-react';
+import { MapPin, Eye, Phone, Mail, Share2, Globe, Heart, Instagram, Facebook, FileText } from 'lucide-react';
 
 const OrgDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +27,24 @@ const OrgDetail = () => {
       </div>
     );
   }
+
+  // Enhanced organization data (in a real app, this would come from the database)
+  const enhancedOrg = {
+    ...org,
+    areaAtuacao: ['Resgate', 'Adoção', 'Saúde', 'Alimentação', 'Castração'][Math.floor(Math.random() * 5)],
+    whatsapp: "(11) 98765-4321",
+    email: `contato@${org.name.toLowerCase().replace(/\s/g, '')}.org`,
+    website: `www.${org.name.toLowerCase().replace(/\s/g, '')}.org`,
+    socialMedia: {
+      instagram: `@${org.name.toLowerCase().replace(/\s/g, '')}`,
+      facebook: `/${org.name.toLowerCase().replace(/\s/g, '')}`
+    },
+    descricao: `${org.name} é uma organização dedicada ao bem-estar animal. 
+      Trabalhamos para resgatar, cuidar e encontrar lares para animais abandonados.
+      Nossa missão é garantir que todos os animais tenham uma vida digna e feliz.
+      Atuamos principalmente na área de ${['Resgate', 'Adoção', 'Saúde', 'Alimentação', 'Castração'][Math.floor(Math.random() * 5)]}.
+      Precisamos sempre de voluntários e doações para continuar nosso trabalho.`
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -59,6 +77,12 @@ const OrgDetail = () => {
                   <h1 className="text-3xl font-bold text-gray-800">{org.name}</h1>
                 </div>
                 
+                <div className="flex items-center mt-2">
+                  <Badge variant="outline" className="bg-blue-50">
+                    Área de Atuação: {enhancedOrg.areaAtuacao}
+                  </Badge>
+                </div>
+                
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center text-gray-600">
                     <MapPin size={18} className="mr-2" />
@@ -74,10 +98,7 @@ const OrgDetail = () => {
                 <div className="mt-8">
                   <h2 className="text-xl font-semibold mb-2">Sobre a Organização</h2>
                   <p className="text-gray-600">
-                    {/* Simulação de descrição, em produção viria do banco de dados */}
-                    {org.name} é uma organização dedicada ao bem-estar animal. 
-                    Trabalhamos para resgatar, cuidar e encontrar lares para animais abandonados.
-                    Nossa missão é garantir que todos os animais tenham uma vida digna e feliz.
+                    {enhancedOrg.descricao}
                   </p>
                 </div>
                 
@@ -86,15 +107,29 @@ const OrgDetail = () => {
                   <div className="space-y-3">
                     <div className="flex items-center text-gray-600">
                       <Phone size={16} className="mr-2" />
-                      <span>(11) 98765-4321</span>
+                      <span>{enhancedOrg.whatsapp} (WhatsApp)</span>
                     </div>
                     <div className="flex items-center text-gray-600">
                       <Mail size={16} className="mr-2" />
-                      <span>contato@{org.name.toLowerCase().replace(/\s/g, '')}.org</span>
+                      <span>{enhancedOrg.email}</span>
                     </div>
                     <div className="flex items-center text-gray-600">
                       <Globe size={16} className="mr-2" />
-                      <a href="#" className="text-[#5D23BE] hover:underline">www.{org.name.toLowerCase().replace(/\s/g, '')}.org</a>
+                      <a href="#" className="text-[#5D23BE] hover:underline">{enhancedOrg.website}</a>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-6">
+                  <h3 className="font-medium text-gray-800 mb-2">Redes Sociais</h3>
+                  <div className="flex space-x-4">
+                    <div className="flex items-center text-gray-600">
+                      <Instagram size={16} className="mr-2 text-pink-600" />
+                      <span>{enhancedOrg.socialMedia.instagram}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600">
+                      <Facebook size={16} className="mr-2 text-blue-600" />
+                      <span>{enhancedOrg.socialMedia.facebook}</span>
                     </div>
                   </div>
                 </div>
@@ -108,6 +143,10 @@ const OrgDetail = () => {
                   <Button variant="outline" className="flex items-center">
                     <Share2 size={16} className="mr-2" />
                     Compartilhar
+                  </Button>
+                  <Button variant="outline" className="flex items-center">
+                    <FileText size={16} className="mr-2" />
+                    Ver Relatórios
                   </Button>
                 </div>
               </div>

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { petsMock } from '@/data/mockData';
-import { MapPin, Clock, Eye, Phone, Mail, Share2 } from 'lucide-react';
+import { MapPin, Clock, Eye, Phone, Mail, Share2, Ruler, GenderMale, GenderFemale, PawPrint, ShieldCheck, Child, Users } from 'lucide-react';
 
 const PetDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +28,27 @@ const PetDetail = () => {
       </div>
     );
   }
+
+  // Enhanced pet data (in a real app, this would come from the database)
+  const enhancedPet = {
+    ...pet,
+    raca: pet.type === 'Cachorro' ? 'Vira-lata' : pet.type === 'Gato' ? 'Siamês' : 'Não especificada',
+    idade: '2 anos',
+    genero: Math.random() > 0.5 ? 'Macho' : 'Fêmea',
+    porte: ['Pequeno', 'Médio', 'Grande'][Math.floor(Math.random() * 3)],
+    cor: ['Preto', 'Branco', 'Caramelo', 'Malhado'][Math.floor(Math.random() * 4)],
+    temperamento: ['Dócil', 'Brincalhão', 'Calmo', 'Sociável'][Math.floor(Math.random() * 4)],
+    castrado: Math.random() > 0.5,
+    vacinasEmDia: Math.random() > 0.5,
+    aceitaCriancas: Math.random() > 0.5,
+    aceitaOutrosAnimais: Math.random() > 0.5,
+    dataDesaparecimento: pet.status === 'perdido' ? new Date().toLocaleDateString('pt-BR') : null,
+    observacoes: pet.status === 'perdido' 
+      ? 'Estava usando coleira azul quando foi visto pela última vez.' 
+      : pet.status === 'encontrado' 
+        ? 'Encontrado sem coleira na rua. Parece ser bem cuidado.'
+        : 'Muito amigável e já está acostumado com a vida em apartamento.',
+  };
 
   const statusColors = {
     perdido: 'bg-red-100 text-red-800 border-red-200',
@@ -92,16 +113,75 @@ const PetDetail = () => {
                   </div>
                 </div>
                 
+                {/* Detalhes do Pet */}
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                  <div className="flex items-center text-gray-700">
+                    <PawPrint size={16} className="mr-2 text-pet-purple" />
+                    <span>Raça: {enhancedPet.raca}</span>
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <Clock size={16} className="mr-2 text-pet-purple" />
+                    <span>Idade: {enhancedPet.idade}</span>
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    {enhancedPet.genero === 'Macho' ? (
+                      <><GenderMale size={16} className="mr-2 text-blue-500" />
+                      <span>Macho</span></>
+                    ) : (
+                      <><GenderFemale size={16} className="mr-2 text-pink-500" />
+                      <span>Fêmea</span></>
+                    )}
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <Ruler size={16} className="mr-2 text-pet-purple" />
+                    <span>Porte: {enhancedPet.porte}</span>
+                  </div>
+                </div>
+                
+                {/* Status extras */}
+                {pet.status === 'adocao' && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Badge variant={enhancedPet.castrado ? "default" : "outline"} className={enhancedPet.castrado ? "bg-green-100 text-green-800 border-green-200" : ""}>
+                      {enhancedPet.castrado ? "Castrado" : "Não castrado"}
+                    </Badge>
+                    <Badge variant={enhancedPet.vacinasEmDia ? "default" : "outline"} className={enhancedPet.vacinasEmDia ? "bg-green-100 text-green-800 border-green-200" : ""}>
+                      {enhancedPet.vacinasEmDia ? "Vacinas em dia" : "Vacinas pendentes"}
+                    </Badge>
+                    <Badge variant={enhancedPet.aceitaCriancas ? "default" : "outline"} className={enhancedPet.aceitaCriancas ? "bg-blue-100 text-blue-800 border-blue-200" : ""}>
+                      <Child size={14} className="mr-1" />
+                      {enhancedPet.aceitaCriancas ? "Aceita crianças" : "Não aceita crianças"}
+                    </Badge>
+                    <Badge variant={enhancedPet.aceitaOutrosAnimais ? "default" : "outline"} className={enhancedPet.aceitaOutrosAnimais ? "bg-blue-100 text-blue-800 border-blue-200" : ""}>
+                      <Users size={14} className="mr-1" />
+                      {enhancedPet.aceitaOutrosAnimais ? "Aceita outros animais" : "Não aceita outros animais"}
+                    </Badge>
+                  </div>
+                )}
+                
+                {/* Data desaparecimento para pets perdidos */}
+                {pet.status === 'perdido' && enhancedPet.dataDesaparecimento && (
+                  <div className="mt-4 p-3 bg-red-50 rounded-md border border-red-200">
+                    <p className="text-sm text-red-700 font-medium">
+                      <Clock size={14} className="inline-block mr-1" />
+                      Desaparecido desde: {enhancedPet.dataDesaparecimento}
+                    </p>
+                  </div>
+                )}
+                
                 <div className="mt-8">
                   <h2 className="text-xl font-semibold mb-2">Descrição</h2>
                   <p className="text-gray-600">
-                    {/* Simulação de descrição, em produção viria do banco de dados */}
-                    {pet.name} é um {pet.type} adorável que precisa de um lar amoroso. 
-                    {pet.status === 'perdido' && " Foi perdido recentemente e sua família está procurando por ele."}
-                    {pet.status === 'encontrado' && " Foi encontrado recentemente e está procurando por sua família."}
-                    {pet.status === 'adocao' && " Está disponível para adoção e procurando por uma família amorosa."}
+                    {enhancedPet.observacoes}
                   </p>
                 </div>
+
+                {/* Temperamento para adoção */}
+                {pet.status === 'adocao' && (
+                  <div className="mt-4">
+                    <h3 className="font-medium text-gray-800">Temperamento</h3>
+                    <p className="text-gray-600">{enhancedPet.temperamento}</p>
+                  </div>
+                )}
                 
                 <div className="mt-8">
                   <h2 className="text-xl font-semibold mb-4">Contato</h2>

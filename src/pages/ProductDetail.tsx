@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { productsMock } from '@/data/mockData';
-import { MapPin, Eye, Phone, Mail, Share2, Tag } from 'lucide-react';
+import { MapPin, Eye, Phone, Mail, Share2, Tag, Truck, FileText, MessageCircle } from 'lucide-react';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +33,24 @@ const ProductDetail = () => {
     style: 'currency',
     currency: 'BRL',
   }).format(product.price);
+
+  // Enhanced product data (in a real app, this would come from the database)
+  const enhancedProduct = {
+    ...product,
+    description: `Este é um produto de alta qualidade da categoria ${product.category}. 
+    Ideal para seu pet, com excelente custo-benefício. 
+    Nossos produtos são testados e aprovados por especialistas.`,
+    socialMedia: {
+      instagram: "@vendedor_pet",
+      facebook: "/vendedorpet"
+    },
+    website: "www.lojapets.com.br",
+    atendimentoDomicilio: Math.random() > 0.5,
+    imagensAdicionais: [
+      "https://via.placeholder.com/300x200?text=Imagem+2",
+      "https://via.placeholder.com/300x200?text=Imagem+3"
+    ]
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -70,6 +88,15 @@ const ProductDetail = () => {
                   <span className="text-2xl font-bold text-[#5D23BE]">{formattedPrice}</span>
                 </div>
                 
+                {enhancedProduct.atendimentoDomicilio && (
+                  <div className="mt-2">
+                    <Badge className="bg-green-100 text-green-800 border-green-200 flex items-center">
+                      <Truck size={14} className="mr-1" />
+                      Atendimento a domicílio disponível
+                    </Badge>
+                  </div>
+                )}
+                
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center text-gray-600">
                     <MapPin size={18} className="mr-2" />
@@ -85,9 +112,7 @@ const ProductDetail = () => {
                 <div className="mt-8">
                   <h2 className="text-xl font-semibold mb-2">Descrição</h2>
                   <p className="text-gray-600">
-                    {/* Simulação de descrição, em produção viria do banco de dados */}
-                    Este é um produto de alta qualidade da categoria {product.category}. 
-                    Ideal para seu pet, com excelente custo-benefício.
+                    {enhancedProduct.description}
                   </p>
                 </div>
                 
@@ -113,9 +138,33 @@ const ProductDetail = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Site e redes sociais */}
+                <div className="mt-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center text-gray-600">
+                      <Globe size={14} className="mr-2" />
+                      <a href="#" className="text-[#5D23BE] hover:underline">{enhancedProduct.website}</a>
+                    </div>
+                    <div className="flex space-x-4">
+                      <div className="flex items-center text-gray-600">
+                        <Instagram size={14} className="mr-1 text-pink-600" />
+                        <span>{enhancedProduct.socialMedia.instagram}</span>
+                      </div>
+                      <div className="flex items-center text-gray-600">
+                        <Facebook size={14} className="mr-1 text-blue-600" />
+                        <span>{enhancedProduct.socialMedia.facebook}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Button variant="purple">Comprar Agora</Button>
+                  <Button variant="outline" className="flex items-center">
+                    <MessageCircle size={16} className="mr-2" />
+                    Enviar Mensagem
+                  </Button>
                   <Button variant="outline" className="flex items-center">
                     <Share2 size={16} className="mr-2" />
                     Compartilhar
@@ -123,6 +172,24 @@ const ProductDetail = () => {
                 </div>
               </div>
             </div>
+
+            {/* Imagens adicionais */}
+            {enhancedProduct.imagensAdicionais && enhancedProduct.imagensAdicionais.length > 0 && (
+              <div className="p-6 border-t">
+                <h3 className="text-lg font-semibold mb-4">Mais Imagens</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {enhancedProduct.imagensAdicionais.map((img, index) => (
+                    <div key={index} className="aspect-square">
+                      <img 
+                        src={img} 
+                        alt={`${product.title} - imagem ${index + 2}`}
+                        className="w-full h-full object-cover rounded"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>

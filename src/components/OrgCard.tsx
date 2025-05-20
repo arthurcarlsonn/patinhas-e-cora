@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Eye, MapPin, Heart, Share2 } from 'lucide-react';
+import { Eye, MapPin, Heart, Share2, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
 import { shareContent } from '@/utils/shareUtils';
@@ -14,9 +14,24 @@ export interface OrgCardProps {
   image: string;
   location: string;
   views: number;
+  // Extended fields
+  areaAtuacao?: string;
+  descricao?: string;
+  contato?: {
+    whatsapp: string;
+    email: string;
+  };
 }
 
-const OrgCard = ({ id, name, category, image, location, views }: OrgCardProps) => {
+const OrgCard = ({ 
+  id, 
+  name, 
+  category, 
+  image, 
+  location, 
+  views,
+  areaAtuacao 
+}: OrgCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
 
   const handleFavorite = (e: React.MouseEvent) => {
@@ -77,13 +92,24 @@ const OrgCard = ({ id, name, category, image, location, views }: OrgCardProps) =
               target.src = `https://via.placeholder.com/300x200?text=ONG`;
             }}
           />
+          <Badge 
+            className="absolute top-2 right-2 bg-purple-100 text-purple-800 border-purple-200"
+          >
+            {category}
+          </Badge>
+          
+          {/* Área de atuação */}
+          {areaAtuacao && (
+            <Badge 
+              className="absolute bottom-2 right-2 bg-white/80 text-gray-700 border border-gray-300"
+            >
+              {areaAtuacao}
+            </Badge>
+          )}
         </div>
         
         <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <h3 className="font-medium text-lg">{name}</h3>
-            <Badge variant="outline">{category}</Badge>
-          </div>
+          <h3 className="font-medium text-lg line-clamp-2">{name}</h3>
         </CardHeader>
         
         <CardContent className="pb-2">
