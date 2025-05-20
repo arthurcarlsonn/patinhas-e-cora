@@ -2,9 +2,9 @@
 import React from 'react';
 import { Phone, Mail, Globe, Instagram, Facebook } from 'lucide-react';
 
-interface SocialMedia {
-  instagram: string;
-  facebook: string;
+export interface SocialMedia {
+  instagram?: string;
+  facebook?: string;
 }
 
 interface ClinicContactProps {
@@ -44,11 +44,11 @@ const ClinicContact = ({ telefone, whatsapp, email, website, socialMedia }: Clin
         <div className="flex space-x-4">
           <div className="flex items-center text-gray-600">
             <Instagram size={16} className="mr-1 text-pink-600" />
-            <span>{socialMedia.instagram}</span>
+            <span>{socialMedia.instagram || 'Não informado'}</span>
           </div>
           <div className="flex items-center text-gray-600">
             <Facebook size={16} className="mr-1 text-blue-600" />
-            <span>{socialMedia.facebook}</span>
+            <span>{socialMedia.facebook || 'Não informado'}</span>
           </div>
         </div>
       </div>

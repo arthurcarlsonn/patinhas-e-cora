@@ -16,8 +16,7 @@ import {
   petsMock, 
   productsMock, 
   organizationsMock,
-  eventsMock,
-  clinicsMock 
+  eventsMock
 } from '@/data/mockData';
 
 const Index = () => {
@@ -53,8 +52,8 @@ const Index = () => {
         />
         <ClinicList 
           title="Clínicas e Veterinários" 
-          clinics={clinicsMock.slice(0, 8)} 
           viewAllLink="/clinicas"
+          limit={8}
         />
       </main>
       <Footer />

@@ -9,6 +9,7 @@ import ClinicBasicInfo from '@/components/clinic-detail/ClinicBasicInfo';
 import ClinicServices from '@/components/clinic-detail/ClinicServices';
 import ClinicVeterinarios from '@/components/clinic-detail/ClinicVeterinarios';
 import ClinicContact from '@/components/clinic-detail/ClinicContact';
+import { SocialMedia } from '@/components/clinic-detail/ClinicContact';
 import ClinicActions from '@/components/clinic-detail/ClinicActions';
 import ClinicNotFound from '@/components/clinic-detail/ClinicNotFound';
 import { toast } from '@/components/ui/sonner';
@@ -33,7 +34,7 @@ interface ClinicData {
   whatsapp: string;
   email: string;
   website: string;
-  social_media: { instagram?: string; facebook?: string };
+  social_media: SocialMedia;
   has_parking: boolean;
   has_home_service: boolean;
   main_image_url: string;
@@ -102,14 +103,30 @@ const ClinicDetail = () => {
           especialidade: vet.specialty
         }));
 
+        // Garantir que social_media seja um objeto com a estrutura esperada
+        const socialMedia: SocialMedia = typeof clinicData.social_media === 'object' && clinicData.social_media !== null
+          ? { 
+              instagram: (clinicData.social_media as any)?.instagram || '',
+              facebook: (clinicData.social_media as any)?.facebook || ''
+            }
+          : { instagram: '', facebook: '' };
+
         // Montar objeto da clínica completo
         const formattedClinic: ClinicData = {
           ...clinicData,
           veterinarios,
           services: clinicData.services || [],
           specialties: clinicData.specialties || [],
-          social_media: clinicData.social_media || { instagram: '', facebook: '' },
-          views: (clinicData.views || 0) + 1  // Atualizar localmente para exibição imediata
+          social_media: socialMedia,
+          views: (clinicData.views || 0) + 1,  // Atualizar localmente para exibição imediata
+          address: clinicData.address || '',
+          description: clinicData.description || '',
+          email: clinicData.email || '',
+          phone: clinicData.phone || '',
+          whatsapp: clinicData.whatsapp || '',
+          website: clinicData.website || '',
+          open_hours: clinicData.open_hours || '',
+          main_image_url: clinicData.main_image_url || ''
         };
 
         setClinic(formattedClinic);
