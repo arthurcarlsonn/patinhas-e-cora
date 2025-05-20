@@ -11,7 +11,7 @@ import EventList from '@/components/EventList';
 import ClinicList from '@/components/ClinicList';
 import Footer from '@/components/Footer';
 
-// Importar dados mockados
+// Importar dados mockados para casos de fallback
 import { 
   petsMock, 
   productsMock, 
@@ -30,18 +30,21 @@ const Index = () => {
         <SearchBar />
         <PetList 
           title="Últimos Pets Cadastrados" 
-          pets={petsMock.slice(0, 8)} 
           viewAllLink="/pets"
+          useMockData={false}
+          limit={8}
         />
         <ProductList 
           title="Produtos para seu Pet" 
-          products={productsMock.slice(0, 8)} 
           viewAllLink="/produtos"
+          useMockData={false}
+          limit={8}
         />
         <OrgList 
           title="ONGs e Voluntários" 
-          organizations={organizationsMock.slice(0, 8)} 
           viewAllLink="/ongs"
+          useMockData={false} 
+          limit={8}
         />
         <EventList 
           title="Eventos" 

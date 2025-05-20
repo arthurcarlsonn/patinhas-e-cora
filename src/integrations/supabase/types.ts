@@ -51,6 +51,276 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_images: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          organization_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          organization_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_images_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          action_area: string
+          created_at: string
+          description: string
+          email: string
+          id: string
+          location: string
+          main_image_url: string | null
+          name: string
+          social_media: Json | null
+          type: string
+          updated_at: string
+          user_id: string
+          views: number | null
+          website: string | null
+          whatsapp: string
+        }
+        Insert: {
+          action_area: string
+          created_at?: string
+          description: string
+          email: string
+          id?: string
+          location: string
+          main_image_url?: string | null
+          name: string
+          social_media?: Json | null
+          type: string
+          updated_at?: string
+          user_id: string
+          views?: number | null
+          website?: string | null
+          whatsapp: string
+        }
+        Update: {
+          action_area?: string
+          created_at?: string
+          description?: string
+          email?: string
+          id?: string
+          location?: string
+          main_image_url?: string | null
+          name?: string
+          social_media?: Json | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+          views?: number | null
+          website?: string | null
+          whatsapp?: string
+        }
+        Relationships: []
+      }
+      pet_images: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          pet_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          pet_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          pet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_images_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pets: {
+        Row: {
+          accepts_children: boolean | null
+          accepts_other_animals: boolean | null
+          age: string | null
+          breed: string | null
+          color: string | null
+          contact_whatsapp: string | null
+          created_at: string
+          description: string | null
+          gender: string | null
+          id: string
+          is_neutered: boolean | null
+          is_vaccinated: boolean | null
+          location: string
+          main_image_url: string | null
+          name: string
+          size: string | null
+          status: string
+          temperament: string | null
+          type: string
+          updated_at: string
+          user_id: string
+          views: number | null
+        }
+        Insert: {
+          accepts_children?: boolean | null
+          accepts_other_animals?: boolean | null
+          age?: string | null
+          breed?: string | null
+          color?: string | null
+          contact_whatsapp?: string | null
+          created_at?: string
+          description?: string | null
+          gender?: string | null
+          id?: string
+          is_neutered?: boolean | null
+          is_vaccinated?: boolean | null
+          location: string
+          main_image_url?: string | null
+          name: string
+          size?: string | null
+          status: string
+          temperament?: string | null
+          type: string
+          updated_at?: string
+          user_id: string
+          views?: number | null
+        }
+        Update: {
+          accepts_children?: boolean | null
+          accepts_other_animals?: boolean | null
+          age?: string | null
+          breed?: string | null
+          color?: string | null
+          contact_whatsapp?: string | null
+          created_at?: string
+          description?: string | null
+          gender?: string | null
+          id?: string
+          is_neutered?: boolean | null
+          is_vaccinated?: boolean | null
+          location?: string
+          main_image_url?: string | null
+          name?: string
+          size?: string | null
+          status?: string
+          temperament?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+          views?: number | null
+        }
+        Relationships: []
+      }
+      product_images: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          category: string
+          contact: string
+          created_at: string
+          description: string
+          home_delivery: boolean | null
+          id: string
+          location: string
+          main_image_url: string | null
+          price: number
+          social_media: Json | null
+          title: string
+          updated_at: string
+          user_id: string
+          views: number | null
+          website: string | null
+        }
+        Insert: {
+          category: string
+          contact: string
+          created_at?: string
+          description: string
+          home_delivery?: boolean | null
+          id?: string
+          location: string
+          main_image_url?: string | null
+          price: number
+          social_media?: Json | null
+          title: string
+          updated_at?: string
+          user_id: string
+          views?: number | null
+          website?: string | null
+        }
+        Update: {
+          category?: string
+          contact?: string
+          created_at?: string
+          description?: string
+          home_delivery?: boolean | null
+          id?: string
+          location?: string
+          main_image_url?: string | null
+          price?: number
+          social_media?: Json | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          views?: number | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
