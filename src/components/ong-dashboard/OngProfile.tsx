@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -56,9 +55,10 @@ const OngProfile = () => {
           
           // Processar redes sociais se existirem
           if (data.social_media && typeof data.social_media === 'object') {
+            const social = data.social_media as Record<string, string>;
             setSocialMedia({
-              instagram: data.social_media.instagram || '',
-              facebook: data.social_media.facebook || ''
+              instagram: social.instagram || '',
+              facebook: social.facebook || ''
             });
           }
         }
@@ -88,15 +88,10 @@ const OngProfile = () => {
 
       if (error) throw error;
 
-      toast({
-        description: "Suas informações foram salvas com sucesso",
-      });
+      toast.success("Suas informações foram salvas com sucesso");
     } catch (error: any) {
       console.error('Erro ao salvar:', error);
-      toast({
-        description: error.message || "Ocorreu um erro ao salvar os dados",
-        variant: "destructive"
-      });
+      toast.error(error.message || "Ocorreu um erro ao salvar os dados");
     } finally {
       setSaving(false);
     }

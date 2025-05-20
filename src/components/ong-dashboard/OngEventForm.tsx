@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -48,10 +47,7 @@ const OngEventForm = () => {
         }
       } catch (error) {
         console.error('Erro ao buscar organizações:', error);
-        toast({
-          description: 'Não foi possível carregar suas organizações',
-          variant: 'destructive'
-        });
+        toast.error('Não foi possível carregar suas organizações');
       } finally {
         setLoading(false);
       }
@@ -69,10 +65,7 @@ const OngEventForm = () => {
     e.preventDefault();
     
     if (!user || !selectedOrgId) {
-      toast({
-        description: "Você precisa selecionar uma organização para criar um evento",
-        variant: "destructive"
-      });
+      toast.error("Você precisa selecionar uma organização para criar um evento");
       return;
     }
 
@@ -107,9 +100,7 @@ const OngEventForm = () => {
 
       if (error) throw error;
 
-      toast({
-        description: "Seu evento foi publicado com sucesso!",
-      });
+      toast.success("Seu evento foi publicado com sucesso!");
 
       // Limpar formulário
       setFormData({
@@ -124,10 +115,7 @@ const OngEventForm = () => {
       
     } catch (error: any) {
       console.error('Erro ao cadastrar evento:', error);
-      toast({
-        description: error.message || "Não foi possível publicar seu evento. Tente novamente.",
-        variant: "destructive"
-      });
+      toast.error(error.message || "Não foi possível publicar seu evento. Tente novamente.");
     } finally {
       setSaving(false);
     }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -75,10 +74,7 @@ const OngEventList = () => {
         setEvents(formattedEvents);
       } catch (error) {
         console.error('Erro ao buscar eventos:', error);
-        toast({
-          description: 'Não foi possível carregar seus eventos',
-          variant: 'destructive'
-        });
+        toast.error('Não foi possível carregar seus eventos');
       } finally {
         setLoading(false);
       }
@@ -104,15 +100,10 @@ const OngEventList = () => {
       
       setEvents(prev => prev.filter(event => event.id !== eventId));
       
-      toast({
-        description: 'O evento foi removido com sucesso'
-      });
+      toast.success('O evento foi removido com sucesso');
     } catch (error: any) {
       console.error('Erro ao excluir evento:', error);
-      toast({
-        description: 'Não foi possível excluir o evento',
-        variant: 'destructive'
-      });
+      toast.error('Não foi possível excluir o evento');
     } finally {
       setDeleting(null);
     }
