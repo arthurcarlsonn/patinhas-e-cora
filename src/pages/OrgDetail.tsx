@@ -60,7 +60,7 @@ const OrgDetail = () => {
         await supabase.rpc('increment_views', { 
           table_name: 'organizations',
           row_id: id 
-        }).then(result => {
+        } as any).then(result => {
           if (result.error) {
             console.error("Erro ao incrementar visualizações:", result.error);
           }
