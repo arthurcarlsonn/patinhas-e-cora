@@ -8,12 +8,12 @@ export interface IncrementViewsParams {
 }
 
 // Export a generic type for RPC functions to help TypeScript understand the structure
-export type RPCFunction<T> = (params: T) => Promise<any>;
+export type RPCFunction<T, R> = (params: T) => Promise<R>;
 
 // Define the type for Postgrest RPC calls
 export type PostgrestRPC = {
-  rpc<T>(
+  rpc: <T>(
     fn: string,
     params: T
-  ): any;
+  ) => any;
 };
