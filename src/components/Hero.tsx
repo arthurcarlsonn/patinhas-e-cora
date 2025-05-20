@@ -19,7 +19,7 @@ const Hero = () => {
               <Link to="/cadastrar-pet">
                 <Button style={{
                 animationDelay: "0.4s"
-              }} className="bg-pet-softGreen hover:bg-green-400 px-6 py-2 transition-all animate-fade-in text-white text-2xl font-light rounded-3xl">
+              }} className="px-6 py-2 transition-all animate-fade-in text-white text-2xl font-light rounded-3xl bg-[#70d07e]">
                   Cadastrar Pet
                 </Button>
               </Link>
