@@ -37,7 +37,7 @@ const ProductList = ({
       try {
         let query = supabase
           .from('products')
-          .select('*, profiles(name)')
+          .select('*')
           .order('created_at', { ascending: false })
           .limit(limit);
 
@@ -64,7 +64,7 @@ const ProductList = ({
             views: product.views || 0, // Adicionando a propriedade views
             business: {
               id: product.user_id,
-              name: product.profiles?.name || 'Usuário',
+              name: 'Usuário', // Nome padrão já que não temos a relação com profiles
               verified: true
             },
             homeDelivery: product.home_delivery || false
