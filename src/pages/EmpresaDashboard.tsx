@@ -7,11 +7,13 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Package, Store, Settings, LogOut } from 'lucide-react';
+import { Package, Store, Settings, LogOut, Building } from 'lucide-react';
 import EmpresaProductForm from '@/components/empresa/EmpresaProductForm';
+import EmpresaClinicForm from '@/components/empresa/EmpresaClinicForm';
 import EmpresaProfile from '@/components/empresa/EmpresaProfile';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProductCardProps } from '@/components/ProductCard';
+import { ClinicCardProps } from '@/components/ClinicCard';
 
 const EmpresaDashboard = () => {
   const { user, userType, signOut } = useAuth();
@@ -36,6 +38,7 @@ const EmpresaDashboard = () => {
   });
 
   const [companyProducts, setCompanyProducts] = useState<ProductCardProps[]>([]);
+  const [companyClinics, setCompanyClinics] = useState<ClinicCardProps[]>([]);
   
   // Verificar se o usuário está logado como empresa
   useEffect(() => {
@@ -123,8 +126,37 @@ const EmpresaDashboard = () => {
       }
     };
     
+    // Carregar clínicas da empresa
+    const fetchCompanyClinics = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('clinics')
+          .select('*')
+          .eq('user_id', user.id);
+          
+        if (error) throw error;
+        
+        if (data) {
+          // Converter dados do banco para o formato do ClinicCard
+          const formattedClinics: ClinicCardProps[] = data.map(clinic => ({
+            id: clinic.id,
+            name: clinic.name,
+            image: clinic.main_image_url || `https://via.placeholder.com/300x200?text=Clínica`,
+            location: clinic.location,
+            category: clinic.category,
+            views: clinic.views || 0
+          }));
+          
+          setCompanyClinics(formattedClinics);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar clínicas:', error);
+      }
+    };
+    
     fetchCompanyData();
     fetchCompanyProducts();
+    fetchCompanyClinics();
   }, [user, navigate, userType, toast]);
   
   // Atualizar perfil da empresa
@@ -195,7 +227,11 @@ const EmpresaDashboard = () => {
               <TabsList className="mb-6">
                 <TabsTrigger value="produtos" className="flex gap-2 items-center">
                   <Package size={16} />
-                  Meus Produtos e Serviços
+                  Meus Produtos
+                </TabsTrigger>
+                <TabsTrigger value="clinicas" className="flex gap-2 items-center">
+                  <Building size={16} />
+                  Minhas Clínicas
                 </TabsTrigger>
                 <TabsTrigger value="perfil" className="flex gap-2 items-center">
                   <Settings size={16} />
@@ -207,6 +243,13 @@ const EmpresaDashboard = () => {
                 <EmpresaProductForm 
                   companyProducts={companyProducts}
                   setCompanyProducts={setCompanyProducts}
+                />
+              </TabsContent>
+              
+              <TabsContent value="clinicas">
+                <EmpresaClinicForm 
+                  companyClinics={companyClinics}
+                  setCompanyClinics={setCompanyClinics}
                 />
               </TabsContent>
               

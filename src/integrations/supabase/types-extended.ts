@@ -12,8 +12,11 @@ export type RPCFunction<T, R> = (params: T) => Promise<R>;
 
 // Define the type for Postgrest RPC calls
 export type PostgrestRPC = {
-  rpc: (
+  rpc: <T = any, R = any>(
     fn: string,
-    params: any
-  ) => any;
+    params: T
+  ) => Promise<{
+    data: R | null;
+    error: Error | null;
+  }>;
 };
