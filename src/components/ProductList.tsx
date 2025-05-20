@@ -1,24 +1,31 @@
+
 import React from 'react';
 import ProductCard, { ProductCardProps } from './ProductCard';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+
 interface ProductListProps {
   title: string;
   products: ProductCardProps[];
   viewAllLink: string;
 }
+
 const ProductList = ({
   title,
   products,
   viewAllLink
 }: ProductListProps) => {
-  return <section className="py-12 bg-white">
+  return (
+    <section className="py-12 bg-white">
       <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-pet-darkPurple">{title}</h2>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+          <div className="mb-4 md:mb-0">
+            <h2 className="text-2xl md:text-3xl font-bold text-[#5D23BE] uppercase">{title}</h2>
+            <p className="text-sm md:text-base text-gray-600">Encontre tudo o que seu pet precisa em um só lugar</p>
+          </div>
           <Link to={viewAllLink}>
-            <Button variant="link" className="text-pet-purple hover:text-pet-lightPurple">
-              Ver todos
+            <Button variant="purple">
+              Ver tudo
             </Button>
           </Link>
         </div>
@@ -26,6 +33,8 @@ const ProductList = ({
           {products.map(product => <ProductCard key={product.id} {...product} />)}
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };
+
 export default ProductList;
