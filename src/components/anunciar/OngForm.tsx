@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { uploadMultipleImages } from '@/utils/uploadUtils';
+import MediaUpload from '@/components/MediaUpload';
 
 interface OngFormProps {
   onSubmit: (event: React.FormEvent) => void;
@@ -282,27 +282,24 @@ const OngForm = ({ onSubmit: parentOnSubmit }: OngFormProps) => {
         />
       </div>
       
-      <div>
-        <Label htmlFor="imagens">Imagens</Label>
-        <Input 
-          id="imagens" 
-          type="file" 
-          accept="image/*" 
-          multiple 
-          onChange={(e) => setImages(e.target.files)}
-          required 
-        />
-      </div>
+      <MediaUpload
+        id="imagens"
+        label="Imagens da ONG/Voluntário"
+        accept="image/*"
+        multiple={true}
+        onChange={setImages}
+        value={images}
+        required={true}
+      />
       
-      <div>
-        <Label htmlFor="video">Vídeo (opcional)</Label>
-        <Input 
-          id="video" 
-          type="file" 
-          accept="video/*"
-          onChange={(e) => e.target.files && setVideo(e.target.files[0])} 
-        />
-      </div>
+      <MediaUpload
+        id="video"
+        label="Vídeo (opcional)"
+        accept="video/*"
+        multiple={false}
+        onChange={(files) => files && files.length > 0 ? setVideo(files[0]) : setVideo(null)}
+        value={video ? new DataTransfer().files : null}
+      />
       
       <Button 
         type="submit" 

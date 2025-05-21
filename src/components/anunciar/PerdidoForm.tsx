@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { uploadMultipleImages } from '@/utils/uploadUtils';
+import MediaUpload from '@/components/MediaUpload';
 
 interface PerdidoFormProps {
   onSubmit: (event: React.FormEvent) => void;
@@ -312,27 +312,24 @@ const PerdidoForm = ({ onSubmit: parentOnSubmit }: PerdidoFormProps) => {
         />
       </div>
       
-      <div>
-        <Label htmlFor="imagens">Imagens</Label>
-        <Input 
-          id="imagens" 
-          type="file" 
-          accept="image/*" 
-          multiple 
-          onChange={(e) => setImages(e.target.files)}
-          required 
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="video">Vídeo (opcional)</Label>
-        <Input 
-          id="video" 
-          type="file" 
-          accept="video/*" 
-          onChange={(e) => e.target.files && setVideo(e.target.files[0])}
-        />
-      </div>
+      <MediaUpload
+        id="imagens"
+        label="Fotos do Pet"
+        accept="image/*"
+        multiple={true}
+        onChange={setImages}
+        value={images}
+        required={true}
+      />
+
+      <MediaUpload
+        id="video"
+        label="Vídeo do Pet (opcional)" 
+        accept="video/*"
+        multiple={false}
+        onChange={(files) => files && files.length > 0 ? setVideo(files[0]) : setVideo(null)}
+        value={video ? new DataTransfer().files : null}
+      />
       
       <div>
         <Label htmlFor="localizacao">Localização onde foi visto pela última vez</Label>

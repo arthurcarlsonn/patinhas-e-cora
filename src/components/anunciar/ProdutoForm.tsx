@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { uploadMultipleImages } from '@/utils/uploadUtils';
+import MediaUpload from '@/components/MediaUpload';
 
 interface ProdutoFormProps {
   onSubmit: (event: React.FormEvent) => void;
@@ -227,17 +227,15 @@ const ProdutoForm = ({ onSubmit: parentOnSubmit }: ProdutoFormProps) => {
         <Label htmlFor="domicilio">Atendimento a domicílio?</Label>
       </div>
       
-      <div>
-        <Label htmlFor="imagens">Imagens</Label>
-        <Input 
-          id="imagens" 
-          type="file" 
-          accept="image/*" 
-          multiple 
-          onChange={(e) => setImages(e.target.files)}
-          required 
-        />
-      </div>
+      <MediaUpload
+        id="imagens"
+        label="Imagens do Produto/Serviço"
+        accept="image/*"
+        multiple={true}
+        onChange={setImages}
+        value={images}
+        required={true}
+      />
       
       <div>
         <Label htmlFor="contatos">Contatos</Label>

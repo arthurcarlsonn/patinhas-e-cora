@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { uploadImage } from '@/utils/uploadUtils';
+import MediaUpload from '@/components/MediaUpload';
 
 interface EmpresaProductFormProps {
   companyProducts?: any[];
@@ -54,10 +55,8 @@ const EmpresaProductForm = ({
     setFormData(prev => ({ ...prev, domicilio: checked }));
   };
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setSelectedFiles(e.target.files);
-    }
+  const handleFileChange = (files: FileList | null) => {
+    setSelectedFiles(files);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -227,17 +226,15 @@ const EmpresaProductForm = ({
           <Label htmlFor="domicilio">Atendimento a domicílio?</Label>
         </div>
         
-        <div>
-          <Label htmlFor="imagens">Imagens</Label>
-          <Input 
-            id="imagens" 
-            type="file" 
-            accept="image/*" 
-            multiple 
-            onChange={handleFileChange}
-            required 
-          />
-        </div>
+        <MediaUpload
+          id="imagens"
+          label="Imagens do Produto"
+          accept="image/*"
+          multiple={true}
+          onChange={handleFileChange}
+          value={selectedFiles}
+          required={true}
+        />
         
         <div>
           <Label htmlFor="contatos">Contatos</Label>
