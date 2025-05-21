@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import EventCard, { EventCardProps } from './EventCard';
 import { Button } from '@/components/ui/button';
@@ -90,11 +91,13 @@ const EventList = ({
             <h2 className="text-2xl md:text-3xl font-bold text-white uppercase">{title}</h2>
             <p className="text-sm md:text-base text-white/80">Encontre tudo o que seu pet precisa em um só lugar</p>
           </div>
-          <Link to={viewAllLink}>
-            <Button variant="purple" className="bg-white text-[#5D23BE] hover:bg-white/90">
-              Ver tudo
-            </Button>
-          </Link>
+          {viewAllLink && (
+            <Link to={viewAllLink}>
+              <Button variant="purple" className="bg-white text-[#5D23BE] hover:bg-white/90">
+                Ver tudo
+              </Button>
+            </Link>
+          )}
         </div>
         
         {isLoading ? (

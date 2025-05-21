@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
-import { Loader2, MapPin, Phone, Mail, Globe, Whatsapp } from 'lucide-react';
+import { Loader2, MapPin, Phone, Mail, Globe } from 'lucide-react';
 import MediaUpload from '@/components/MediaUpload';
 import { Separator } from '@/components/ui/separator';
 
@@ -83,7 +84,7 @@ const ClinicEditForm = () => {
         if (data) {
           const socialMediaData = handleSocialMediaInput(data.social_media);
 
-          setClinic(data);
+          setClinic(data as Clinic);
           setFormData({
             name: data.name,
             description: data.description,
@@ -91,8 +92,8 @@ const ClinicEditForm = () => {
             location: data.location,
             phone: data.phone,
             email: data.email,
-            website: data.website,
-            whatsapp: data.whatsapp,
+            website: data.website || '',
+            whatsapp: data.whatsapp || '',
             specialties: data.specialties ? data.specialties.join(', ') : '',
             has_parking: data.has_parking,
             has_home_service: data.has_home_service,
@@ -194,21 +195,37 @@ const ClinicEditForm = () => {
       try {
         return JSON.parse(socialMediaData);
       } catch {
-        return {};
+        return { facebook: '', instagram: '' };
       }
     }
     
     if (socialMediaData && typeof socialMediaData === 'object') {
-      const result: Record<string, string> = {};
+      // Ensure we have the expected structure
+      const result: Record<string, string> = { 
+        facebook: '',
+        instagram: ''
+      };
+      
+      // Copy over values from the input object if they exist
+      if (typeof socialMediaData.facebook === 'string') {
+        result.facebook = socialMediaData.facebook;
+      }
+      
+      if (typeof socialMediaData.instagram === 'string') {
+        result.instagram = socialMediaData.instagram;
+      }
+      
+      // Add any other keys that might be present
       Object.entries(socialMediaData).forEach(([key, value]) => {
-        if (typeof value === 'string') {
+        if (typeof value === 'string' && key !== 'facebook' && key !== 'instagram') {
           result[key] = value;
         }
       });
+      
       return result;
     }
     
-    return {};
+    return { facebook: '', instagram: '' };
   };
 
   if (loading) {
@@ -316,7 +333,7 @@ const ClinicEditForm = () => {
             <div>
               <Label htmlFor="whatsapp">WhatsApp</Label>
               <div className="relative">
-                <Whatsapp className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                <Phone className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
                 <Input
                   id="whatsapp"
                   className="pl-8"
