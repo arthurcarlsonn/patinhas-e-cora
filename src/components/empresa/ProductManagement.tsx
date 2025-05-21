@@ -16,6 +16,16 @@ interface ProductManagementProps {
   companyId: string;
 }
 
+type Product = {
+  id: string;
+  title: string;
+  price: number;
+  category: string;
+  location: string;
+  main_image_url: string;
+  views: number;
+};
+
 const ProductManagement = ({ companyId }: ProductManagementProps) => {
   const { user } = useAuth();
   const { toast } = useToast();

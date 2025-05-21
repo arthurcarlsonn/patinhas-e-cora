@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,7 +11,7 @@ import { toast } from '@/components/ui/sonner';
 import { Loader2, Calendar, MapPin, Upload } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { uploadMultipleImages } from '@/utils/uploadUtils';
-import { MediaUpload } from '@/components/ui/media-upload';
+import MediaUpload from '@/components/MediaUpload';
 
 const OngEventForm = ({ onSuccess }: { onSuccess?: () => void }) => {
   const { user } = useAuth();

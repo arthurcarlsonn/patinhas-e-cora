@@ -1,117 +1,122 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Loader2, MapPin, DollarSign } from 'lucide-react';
 import MediaUpload from '@/components/MediaUpload';
-import ProductCard from '@/components/ProductCard';
-import { Loader2 } from 'lucide-react';
+import ProductCard, { ProductCardProps } from '@/components/ProductCard';
+import { uploadMultipleImages } from '@/utils/uploadUtils';
 
-interface Product {
-  id?: string;
-  title: string;
-  description: string;
-  price: number;
-  location: string;
-  category: string;
-  main_image_url?: string;
-  contact?: string;
-  user_id?: string;
+type Company = {
+  id: string;
+  name: string;
 }
 
-const EmpresaProductForm = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+interface EmpresaProductFormProps {
+  onSuccess?: () => void;
+  onSubmitComplete?: () => void;
+}
 
-  const [product, setProduct] = useState<Product>({
+const EmpresaProductForm = ({ onSuccess, onSubmitComplete }: EmpresaProductFormProps) => {
+  const { user } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+  const [image, setImage] = useState<File[] | null>(null);
+  const [preview, setPreview] = useState<ProductCardProps | null>(null);
+  const [formData, setFormData] = useState({
     title: '',
+    price: '',
     description: '',
-    price: 0,
     location: '',
     category: '',
-    main_image_url: ''
+    home_delivery: false
   });
-  const [image, setImage] = useState<File[] | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [company, setCompany] = useState<{ id: string; company_name: string } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      navigate('/entrar');
-      return;
-    }
+    if (!user) return;
 
-    const fetchCompanyAndProducts = async () => {
-      setIsLoading(true);
+    const fetchUserCompanies = async () => {
       try {
-        // Fetch company data
-        const { data: companyData, error: companyError } = await supabase
+        // Fetch companies where the user is the owner
+        const { data, error } = await supabase
           .from('companies')
           .select('id, company_name')
-          .eq('user_id', user.id)
-          .single();
+          .eq('id', user.id);
 
-        if (companyError) {
-          throw companyError;
+        if (error) {
+          throw error;
         }
 
-        if (companyData) {
-          setCompany(companyData);
-
-          // Fetch products for the company
-          const { data: productsData, error: productsError } = await supabase
-            .from('products')
-            .select('*')
-            .eq('company_id', companyData.id);
-
-          if (productsError) {
-            throw productsError;
-          }
-
-          if (productsData) {
-            setProducts(productsData);
-          }
+        if (data && data.length > 0) {
+          const formattedCompanies: Company[] = data.map(company => ({
+            id: company.id,
+            name: company.company_name
+          }));
+          setCompanies(formattedCompanies);
+          setSelectedCompanyId(formattedCompanies[0].id);
         }
-      } catch (error: any) {
-        console.error('Error fetching data:', error);
-        toast({
-          title: "Erro ao carregar dados",
-          description: error.message || "Tente novamente mais tarde.",
-          variant: "destructive"
-        });
+      } catch (error) {
+        console.error('Erro ao buscar empresas:', error);
+        toast.error('Não foi possível carregar suas empresas');
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
-    fetchCompanyAndProducts();
-  }, [user, navigate, toast]);
+    fetchUserCompanies();
+  }, [user]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+    
+    // Update preview
+    updatePreview({ [id]: value });
+  };
+
+  const handleSwitchChange = (checked: boolean) => {
+    setFormData(prev => ({ ...prev, home_delivery: checked }));
+  };
+  
+  const updatePreview = (newData: Partial<typeof formData>) => {
+    const updatedData = { ...formData, ...newData };
+    
+    setPreview({
+      id: 'preview',
+      title: updatedData.title || 'Título do Produto',
+      price: parseFloat(updatedData.price) || 0,
+      image: image && image.length > 0 
+        ? URL.createObjectURL(image[0]) 
+        : 'https://via.placeholder.com/300x200?text=Imagem+do+Produto',
+      category: updatedData.category || 'Categoria',
+      location: updatedData.location || 'Localização',
+      views: 0
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!user) {
-      toast({
-        title: "Erro",
-        description: "Você precisa estar logado para cadastrar produtos.",
-        variant: "destructive"
-      });
+    
+    if (!user || !selectedCompanyId) {
+      toast.error("Você precisa selecionar uma empresa para adicionar um produto");
       return;
     }
 
-    setIsSaving(true);
+    setSaving(true);
+    
     try {
-      // Upload image if it exists
-      let imageUrl = product.main_image_url;
+      // Upload da imagem
+      let imageUrl = null;
       if (image && image.length > 0) {
         const urls = await uploadMultipleImages(image);
         if (urls.length > 0) {
@@ -119,175 +124,246 @@ const EmpresaProductForm = () => {
         }
       }
 
-      // Create product in database
-      const { data: productData, error: productError } = await supabase
+      // Inserir produto no banco de dados
+      const { error } = await supabase
         .from('products')
         .insert({
-          user_id: user.id,
-          title: product.title,
-          description: product.description,
-          price: product.price,
-          location: product.location,
-          category: product.category,
-          main_image_url: imageUrl,
-          contact: 'contact' in product ? product.contact : ''
-        })
-        .select()
-        .single();
+          title: formData.title,
+          description: formData.description,
+          price: parseFloat(formData.price),
+          location: formData.location,
+          category: formData.category,
+          home_delivery: formData.home_delivery,
+          company_id: selectedCompanyId,
+          main_image_url: imageUrl
+        });
 
-      if (productError) {
-        throw productError;
-      }
+      if (error) throw error;
 
-      setProducts([...products, productData]);
+      toast.success("Seu produto foi adicionado com sucesso!");
 
-      // Reset form
-      setProduct({
+      // Limpar formulário
+      setFormData({
         title: '',
+        price: '',
         description: '',
-        price: 0,
         location: '',
         category: '',
-        main_image_url: ''
+        home_delivery: false
       });
       setImage(null);
-
-      toast({
-        title: "Produto cadastrado",
-        description: "O produto foi cadastrado com sucesso."
-      });
+      setPreview(null);
+      
+      // Callback de sucesso
+      if (onSuccess) onSuccess();
+      if (onSubmitComplete) onSubmitComplete();
+      
     } catch (error: any) {
-      console.error('Error creating product:', error);
-      toast({
-        title: "Erro ao cadastrar produto",
-        description: error.message || "Tente novamente mais tarde.",
-        variant: "destructive"
-      });
+      console.error('Erro ao cadastrar produto:', error);
+      toast.error(error.message || "Não foi possível adicionar seu produto. Tente novamente.");
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   };
 
-  return (
-    <div className="container mx-auto px-4 py-8">
+  if (loading) {
+    return (
+      <Card className="p-6">
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-pet-purple" />
+        </div>
+      </Card>
+    );
+  }
+
+  if (companies.length === 0) {
+    return (
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Cadastrar Novo Produto</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
+          <div className="text-center py-8">
+            <h2 className="text-xl font-bold text-gray-700 mb-4">Nenhuma empresa cadastrada</h2>
+            <p className="text-gray-600 mb-6">
+              Você precisa cadastrar uma empresa antes de adicionar produtos.
+            </p>
+            <Button
+              onClick={() => window.location.href = '/empresas'}
+              className="bg-pet-purple hover:bg-pet-lightPurple"
+            >
+              Cadastrar minha empresa
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Formulário */}
+      <Card>
+        <CardContent className="pt-6">
+          <h2 className="text-2xl font-bold mb-6 text-pet-darkPurple">Adicionar Produto</h2>
+          
           <form onSubmit={handleSubmit} className="space-y-4">
+            {companies.length > 1 && (
+              <div>
+                <Label htmlFor="company_id">Empresa</Label>
+                <Select
+                  value={selectedCompanyId}
+                  onValueChange={setSelectedCompanyId}
+                >
+                  <SelectTrigger id="company_id">
+                    <SelectValue placeholder="Selecione a empresa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map(company => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
             <div>
-              <Label htmlFor="title">Título</Label>
+              <Label htmlFor="title">Nome do produto</Label>
               <Input
-                type="text"
                 id="title"
-                value={product.title}
-                onChange={(e) => setProduct({ ...product, title: e.target.value })}
+                value={formData.title}
+                onChange={handleInputChange}
+                placeholder="Digite o nome do produto"
                 required
               />
             </div>
-            <div>
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea
-                id="description"
-                value={product.description}
-                onChange={(e) => setProduct({ ...product, description: e.target.value })}
-                required
-              />
-            </div>
+            
             <div>
               <Label htmlFor="price">Preço</Label>
-              <Input
-                type="number"
-                id="price"
-                value={product.price.toString()}
-                onChange={(e) => setProduct({ ...product, price: parseFloat(e.target.value) })}
-                required
-              />
+              <div className="relative">
+                <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="pl-8"
+                  value={formData.price}
+                  onChange={handleInputChange}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="location">Localização</Label>
-              <Input
-                type="text"
-                id="location"
-                value={product.location}
-                onChange={(e) => setProduct({ ...product, location: e.target.value })}
-                required
-              />
-            </div>
+            
             <div>
               <Label htmlFor="category">Categoria</Label>
               <Select
-                onValueChange={(value) => setProduct({ ...product, category: value })}
+                value={formData.category}
+                onValueChange={(value) => {
+                  setFormData(prev => ({ ...prev, category: value }));
+                  updatePreview({ category: value });
+                }}
+                required
               >
                 <SelectTrigger id="category">
-                  <SelectValue placeholder="Selecione uma categoria" />
+                  <SelectValue placeholder="Selecione a categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Alimentos">Alimentos</SelectItem>
-                  <SelectItem value="Acessórios">Acessórios</SelectItem>
-                  <SelectItem value="Brinquedos">Brinquedos</SelectItem>
-                  <SelectItem value="Higiene e Beleza">Higiene e Beleza</SelectItem>
-                  <SelectItem value="Saúde">Saúde</SelectItem>
+                  <SelectItem value="alimentos">Alimentos</SelectItem>
+                  <SelectItem value="brinquedos">Brinquedos</SelectItem>
+                  <SelectItem value="acessorios">Acessórios</SelectItem>
+                  <SelectItem value="higiene">Higiene</SelectItem>
+                  <SelectItem value="saude">Saúde e Bem-estar</SelectItem>
+                  <SelectItem value="camas">Camas e Casinhas</SelectItem>
+                  <SelectItem value="transporte">Transporte</SelectItem>
+                  <SelectItem value="outros">Outros</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            
             <div>
-              <Label htmlFor="image">Imagem Principal</Label>
-              <MediaUpload
-                id="image"
-                label="Selecione uma imagem"
-                accept="image/*"
-                multiple={false}
-                onChange={(files) => {
-                  if (files && files.length > 0) {
-                    setImage(files);
-                  } else {
-                    setImage(null);
-                  }
-                }}
-                value={image ? [image] : null}
+              <Label htmlFor="location">Localização</Label>
+              <div className="relative">
+                <MapPin className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  id="location"
+                  className="pl-8"
+                  placeholder="Cidade/Estado"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="home_delivery"
+                checked={formData.home_delivery}
+                onCheckedChange={handleSwitchChange}
+              />
+              <Label htmlFor="home_delivery" className="cursor-pointer">Entrega a domicílio</Label>
+            </div>
+            
+            <div>
+              <Label htmlFor="description">Descrição do produto</Label>
+              <Textarea
+                id="description"
+                rows={5}
+                value={formData.description}
+                onChange={handleInputChange}
+                placeholder="Descreva detalhes importantes sobre o produto"
+                required
               />
             </div>
-            <Button disabled={isSaving} className="w-full bg-pet-purple hover:bg-pet-lightPurple">
-              {isSaving ? (
+            
+            <div>
+              <Label htmlFor="image">Imagem do Produto</Label>
+              <MediaUpload 
+                id="product-image"
+                label="Selecione uma imagem para o produto"
+                accept="image/*"
+                multiple={false}
+                onChange={setImage}
+                value={image}
+                required={false}
+              />
+            </div>
+            
+            <Button
+              type="submit"
+              className="bg-pet-purple hover:bg-pet-lightPurple"
+              disabled={saving}
+            >
+              {saving ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Salvando...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...
                 </>
               ) : (
-                'Cadastrar Produto'
+                'Adicionar Produto'
               )}
             </Button>
           </form>
         </CardContent>
       </Card>
-
-      <div className="mt-8">
-        <h2 className="text-2xl font-bold mb-4">Produtos Cadastrados</h2>
-        {isLoading ? (
-          <div className="flex justify-center">
-            <Loader2 className="h-6 w-6 animate-spin" />
+      
+      {/* Preview */}
+      {preview && (
+        <div className="flex flex-col">
+          <h2 className="text-xl font-semibold mb-4">Prévia do Produto</h2>
+          <div className="max-w-sm mx-auto">
+            <ProductCard
+              id={preview.id}
+              title={preview.title}
+              image={preview.image}
+              price={preview.price}
+              location={preview.location}
+              category={preview.category}
+              views={0}
+            />
           </div>
-        ) : products.length === 0 ? (
-          <p>Nenhum produto cadastrado ainda.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {products.map((product) => (
-              <ProductCard
-                key={product.id || ''}
-                id={product.id || ''}
-                title={product.title}
-                image={product.main_image_url || '/placeholder.svg'}
-                price={product.price}
-                category={product.category}
-                location={product.location}
-                views={0}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

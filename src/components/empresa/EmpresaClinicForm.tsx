@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +13,11 @@ import { Loader2 } from 'lucide-react';
 import MediaUpload from '@/components/MediaUpload';
 import { uploadMultipleImages } from '@/utils/uploadUtils';
 
+type Company = {
+  id: string;
+  name: string;
+}
+
 interface EmpresaClinicFormProps {
   onSubmitSuccess: () => void;
 }
@@ -23,7 +27,7 @@ const EmpresaClinicForm = ({ onSubmitSuccess }: EmpresaClinicFormProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [company, setCompany] = useState<{ id: string; company_name: string } | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
   const [isLoadingCompany, setIsLoadingCompany] = useState(true);
   
   const [formData, setFormData] = useState({
@@ -57,7 +61,7 @@ const EmpresaClinicForm = ({ onSubmitSuccess }: EmpresaClinicFormProps) => {
       try {
         const { data, error } = await supabase
           .from('companies')
-          .select('id, company_name')
+          .select('id, name')
           .eq('user_id', user.id)
           .single();
         
@@ -70,7 +74,7 @@ const EmpresaClinicForm = ({ onSubmitSuccess }: EmpresaClinicFormProps) => {
           // Pre-fill some form fields
           setFormData(prev => ({
             ...prev,
-            name: data.company_name || prev.name,
+            name: data.name || prev.name,
           }));
         }
       } catch (error: any) {

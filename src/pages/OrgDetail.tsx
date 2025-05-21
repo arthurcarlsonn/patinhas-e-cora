@@ -1,35 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Loader2, MapPin, Calendar, Mail, Phone, Globe, Instagram, Facebook, Clock, Info } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import PetList from '@/components/PetList';
 import EventList from '@/components/EventList';
-import { useAuth } from '@/contexts/AuthContext';
+import PetList from '@/components/PetList';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { MapPin, Calendar, Mail, Phone, Globe, Instagram, Facebook, Users, ArrowLeft, Eye, Share2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { share } from '@/utils/shareUtils';
 
 interface Organization {
   id: string;
   name: string;
-  type: string;
-  action_area: string;
   description: string;
   location: string;
+  main_image_url?: string;
   email: string;
   whatsapp: string;
   website?: string;
-  main_image_url?: string;
-  social_media?: Record<string, string>; // Changed from {instagram?: string; facebook?: string}
-  user_id: string;
+  action_area: string;
+  type: string;
   views: number;
+  social_media: Record<string, string>;
+  user_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -37,280 +31,285 @@ interface Organization {
 const OrgDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [organization, setOrganization] = useState<Organization | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('sobre');
-  const { user } = useAuth();
-  const isOwner = user?.id === organization?.user_id;
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      fetchOrganizationDetails(id);
-    }
+    const fetchOrganization = async () => {
+      try {
+        if (!id) {
+          setNotFound(true);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error) {
+          console.error('Erro ao buscar ONG:', error);
+          setNotFound(true);
+          return;
+        }
+
+        if (data) {
+          // Convert social_media JSON to record type
+          let socialMedia: Record<string, string> = {};
+          if (data.social_media) {
+            try {
+              if (typeof data.social_media === 'string') {
+                socialMedia = JSON.parse(data.social_media);
+              } else if (typeof data.social_media === 'object') {
+                // Try to convert to Record<string, string>
+                Object.entries(data.social_media).forEach(([key, value]) => {
+                  if (typeof value === 'string') {
+                    socialMedia[key] = value;
+                  }
+                });
+              }
+            } catch (e) {
+              console.error('Error parsing social media:', e);
+              // Default to empty object if parsing fails
+            }
+          }
+
+          setOrganization({
+            ...data,
+            social_media: socialMedia
+          });
+
+          // Increment view count
+          await supabase
+            .from('organizations')
+            .update({ views: (data.views || 0) + 1 })
+            .eq('id', id);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar ONG:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrganization();
   }, [id]);
 
-  const fetchOrganizationDetails = async (id: string) => {
-    try {
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (orgError) throw orgError;
-      
-      if (orgData) {
-        // Convert social_media to the right format
-        const org: Organization = {
-          ...orgData,
-          social_media: typeof orgData.social_media === 'object' ? 
-            orgData.social_media : {}
-        };
-        
-        setOrganization(org);
-        setIsLoading(false);
-
-        // Update view count
-        updateViewCount(id, orgData.views || 0);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar ONG:', error);
-      setError('Não foi possível carregar os detalhes da ONG.');
-      setIsLoading(false);
-    }
-  };
-
-  const updateViewCount = async (orgId: string, currentViews: number) => {
-    try {
-      await supabase
-        .from('organizations')
-        .update({ views: currentViews + 1 })
-        .eq('id', orgId);
-    } catch (error) {
-      console.error('Erro ao atualizar visualizações:', error);
-    }
-  };
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="flex flex-col min-h-screen">
         <Header />
-        <main className="flex-grow flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (error || !organization) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-grow flex items-center justify-center">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="text-center">Erro</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-center">{error || 'ONG não encontrada'}</p>
-            </CardContent>
-            <CardFooter className="flex justify-center">
-              <Link to="/ongs">
-                <Button>Voltar para ONGs</Button>
-              </Link>
-            </CardFooter>
-          </Card>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-grow py-8">
-        <div className="container mx-auto px-4">
-          {/* Hero Section */}
-          <div className="relative rounded-lg overflow-hidden mb-8 bg-gradient-to-r from-pet-purple to-pet-lightPurple">
-            <div className="absolute inset-0 bg-black/30"></div>
-            <div className="relative z-10 p-8 md:p-12 flex flex-col md:flex-row items-center md:items-end gap-6">
-              <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-white">
-                <AvatarImage src={organization.main_image_url || ''} alt={organization.name} />
-                <AvatarFallback className="text-2xl md:text-4xl bg-pet-purple text-white">
-                  {organization.name.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="text-center md:text-left text-white">
-                <h1 className="text-3xl md:text-4xl font-bold mb-2">{organization.name}</h1>
-                <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                  <Badge variant="outline" className="bg-white/20 text-white border-white/40">
-                    {organization.type}
-                  </Badge>
-                  <Badge variant="outline" className="bg-white/20 text-white border-white/40">
-                    {organization.action_area}
-                  </Badge>
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    <span>{organization.location}</span>
+        <main className="flex-grow bg-pet-softGray py-12">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Main Content */}
+              <div className="md:col-span-1">
+                <div className="bg-white shadow rounded-lg p-6">
+                  <div className="mb-4">
+                    <Skeleton className="h-12 w-3/4 rounded-md" />
+                  </div>
+                  <Skeleton className="h-48 w-full rounded-md mb-4" />
+                  <Skeleton className="h-6 w-full rounded-md mb-2" />
+                  <Skeleton className="h-6 w-5/6 rounded-md mb-2" />
+                  <Skeleton className="h-6 w-1/2 rounded-md mb-4" />
+                  <div className="flex space-x-4">
+                    <Skeleton className="h-10 w-20 rounded-md" />
+                    <Skeleton className="h-10 w-20 rounded-md" />
                   </div>
                 </div>
               </div>
-              {isOwner && (
-                <div className="ml-auto">
-                  <Link to={`/ong/dashboard`}>
-                    <Button variant="outline" className="bg-white text-pet-purple hover:bg-gray-100">
-                      Gerenciar ONG
-                    </Button>
-                  </Link>
+              {/* Sidebar */}
+              <div className="md:col-span-1">
+                <div className="bg-white shadow rounded-lg p-6">
+                  <Skeleton className="h-10 w-1/2 rounded-md mb-4" />
+                  <Skeleton className="h-8 w-full rounded-md mb-2" />
+                  <Skeleton className="h-8 w-full rounded-md mb-2" />
+                  <Skeleton className="h-8 w-full rounded-md mb-2" />
                 </div>
-              )}
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-grow bg-pet-softGray py-12">
+          <div className="container mx-auto px-4">
+            <div className="bg-white shadow rounded-lg p-6 text-center">
+              <h2 className="text-2xl font-bold text-gray-700 mb-4">ONG não encontrada</h2>
+              <p className="text-gray-600">A ONG que você está procurando não existe ou foi removida.</p>
+              <Link to="/ongs" className="text-pet-purple hover:underline block mt-4">
+                Voltar para a lista de ONGs
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!organization) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-grow bg-pet-softGray py-12">
+        <div className="container mx-auto px-4">
+          <Link to="/ongs" className="inline-flex items-center mb-4 text-pet-purple hover:underline">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar para a lista de ONGs
+          </Link>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="md:col-span-2">
+              <div className="bg-white shadow rounded-lg overflow-hidden">
+                {/* Organization Image */}
+                <div className="relative h-64">
+                  <img
+                    src={organization.main_image_url || 'https://via.placeholder.com/600x400?text=ONG'}
+                    alt={organization.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = 'https://via.placeholder.com/600x400?text=ONG';
+                    }}
+                  />
+                </div>
+
+                <div className="p-6">
+                  {/* Organization Name */}
+                  <h1 className="text-3xl font-bold text-pet-darkPurple mb-2">{organization.name}</h1>
+
+                  {/* Organization Description */}
+                  <p className="text-gray-700 mb-4">{organization.description}</p>
+
+                  {/* Action Area and Type */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <span className="inline-block bg-pet-purple/10 text-pet-purple px-3 py-1 rounded-full text-sm font-medium">
+                      Área: {organization.action_area}
+                    </span>
+                    <span className="inline-block bg-pet-purple/10 text-pet-purple px-3 py-1 rounded-full text-sm font-medium">
+                      Tipo: {organization.type}
+                    </span>
+                  </div>
+
+                  {/* Contact Information */}
+                  <div className="mb-4">
+                    <h3 className="text-xl font-semibold text-gray-700 mb-2">Informações de Contato</h3>
+                    <div className="flex items-center text-gray-600 mb-1">
+                      <MapPin className="mr-2 h-4 w-4" />
+                      <span>{organization.location}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600 mb-1">
+                      <Mail className="mr-2 h-4 w-4" />
+                      <a href={`mailto:${organization.email}`} className="hover:underline">
+                        {organization.email}
+                      </a>
+                    </div>
+                    <div className="flex items-center text-gray-600 mb-1">
+                      <Phone className="mr-2 h-4 w-4" />
+                      <span>{organization.whatsapp}</span>
+                    </div>
+                    {organization.website && (
+                      <div className="flex items-center text-gray-600 mb-1">
+                        <Globe className="mr-2 h-4 w-4" />
+                        <a href={organization.website} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                          {organization.website}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Social Media Links */}
+                  {organization.social_media && Object.keys(organization.social_media).length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-xl font-semibold text-gray-700 mb-2">Redes Sociais</h3>
+                      <div className="flex space-x-4">
+                        {organization.social_media.instagram && (
+                          <a href={organization.social_media.instagram} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-pet-purple">
+                            <Instagram className="h-6 w-6" />
+                          </a>
+                        )}
+                        {organization.social_media.facebook && (
+                          <a href={organization.social_media.facebook} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-pet-purple">
+                            <Facebook className="h-6 w-6" />
+                          </a>
+                        )}
+                        {/* Add more social media icons as needed */}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center text-gray-500">
+                      <Eye className="mr-1 h-4 w-4" />
+                      <span>{organization.views} visualizações</span>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button variant="outline">
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Compartilhar
+                      </Button>
+                      <Button>
+                        <Users className="mr-2 h-4 w-4" />
+                        Apoiar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar */}
+            <div className="md:col-span-1">
+              {/* Contact Section */}
+              <div className="bg-white shadow rounded-lg p-6 mb-8">
+                <h3 className="text-xl font-semibold text-gray-700 mb-4">Entre em Contato</h3>
+                <div className="flex items-center text-gray-600 mb-2">
+                  <Mail className="mr-2 h-4 w-4" />
+                  <a href={`mailto:${organization.email}`} className="hover:underline">
+                    {organization.email}
+                  </a>
+                </div>
+                <div className="flex items-center text-gray-600 mb-2">
+                  <Phone className="mr-2 h-4 w-4" />
+                  <span>{organization.whatsapp}</span>
+                </div>
+                {organization.website && (
+                  <div className="flex items-center text-gray-600">
+                    <Globe className="mr-2 h-4 w-4" />
+                    <a href={organization.website} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                      {organization.website}
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Pet List */}
+              <PetList title="Pets desta ONG" viewAllLink="/pets" limit={3} organizationId={organization.id} />
             </div>
           </div>
 
-          {/* Tabs Navigation */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-            <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto">
-              <TabsTrigger value="sobre">Sobre</TabsTrigger>
-              <TabsTrigger value="pets">Pets</TabsTrigger>
-              <TabsTrigger value="eventos">Eventos</TabsTrigger>
-            </TabsList>
-
-            {/* About Tab */}
-            <TabsContent value="sobre" className="mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="md:col-span-2">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Info className="h-5 w-5" /> Sobre a ONG
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="whitespace-pre-line">{organization.description}</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="mt-6">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Calendar className="h-5 w-5" /> Histórico
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Clock className="h-4 w-4" />
-                        <span>
-                          Cadastrada em{' '}
-                          {format(parseISO(organization.created_at), "dd 'de' MMMM 'de' yyyy", {
-                            locale: ptBR,
-                          })}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Contato</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {organization.email && (
-                        <div className="flex items-center gap-3">
-                          <Mail className="h-5 w-5 text-pet-purple" />
-                          <a
-                            href={`mailto:${organization.email}`}
-                            className="text-pet-purple hover:underline"
-                          >
-                            {organization.email}
-                          </a>
-                        </div>
-                      )}
-
-                      {organization.whatsapp && (
-                        <div className="flex items-center gap-3">
-                          <Phone className="h-5 w-5 text-pet-purple" />
-                          <a
-                            href={`https://wa.me/${organization.whatsapp.replace(/\D/g, '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-pet-purple hover:underline"
-                          >
-                            {organization.whatsapp}
-                          </a>
-                        </div>
-                      )}
-
-                      {organization.website && (
-                        <div className="flex items-center gap-3">
-                          <Globe className="h-5 w-5 text-pet-purple" />
-                          <a
-                            href={organization.website.startsWith('http') ? organization.website : `https://${organization.website}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-pet-purple hover:underline"
-                          >
-                            {organization.website}
-                          </a>
-                        </div>
-                      )}
-
-                      {organization.social_media && (
-                        <div className="mt-4">
-                          <Separator className="my-4" />
-                          <div className="flex gap-4">
-                            {organization.social_media.instagram && (
-                              <a
-                                href={`https://instagram.com/${organization.social_media.instagram.replace('@', '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-pet-purple hover:text-pet-lightPurple"
-                              >
-                                <Instagram className="h-6 w-6" />
-                              </a>
-                            )}
-                            {organization.social_media.facebook && (
-                              <a
-                                href={`https://facebook.com/${organization.social_media.facebook}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-pet-purple hover:text-pet-lightPurple"
-                              >
-                                <Facebook className="h-6 w-6" />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </TabsContent>
-
-            {/* Pets Tab */}
-            <TabsContent value="pets" className="mt-6">
-              <PetList
-                title="Pets para Adoção"
-                viewAllLink="/pets"
-                limit={6}
-                organizationId={organization.id}
-              />
-            </TabsContent>
-
-            {/* Events Tab */}
-            <TabsContent value="eventos" className="mt-6">
-              <EventList
-                title="Eventos da ONG"
-                viewAllLink="/eventos"
-                limit={6}
-                organizationId={organization.id}
-              />
-            </TabsContent>
-          </Tabs>
+          {organization && (
+            <EventList
+              title="Eventos desta ONG"
+              viewAllLink="/eventos"
+              limit={4}
+              organizationId={organization.id}
+            />
+          )}
         </div>
       </main>
       <Footer />

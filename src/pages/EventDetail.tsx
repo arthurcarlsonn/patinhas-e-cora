@@ -1,6 +1,5 @@
-
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -10,88 +9,89 @@ import EventDescription from '@/components/event-detail/EventDescription';
 import EventActions from '@/components/event-detail/EventActions';
 import EventNotFound from '@/components/event-detail/EventNotFound';
 import EventLoading from '@/components/event-detail/EventLoading';
+import { Separator } from '@/components/ui/separator';
 
-interface EventDetail {
+interface Organization {
+  id: string;
+  name: string;
+  main_image_url?: string;
+}
+
+interface Event {
   id: string;
   title: string;
+  description: string;
   date: string;
   location: string;
-  description: string;
   category: string;
   main_image_url?: string;
+  organization_id: string;
+  organization?: Organization;
   views: number;
-  organization: {
-    id: string;
-    name: string;
-  };
+  created_at: string;
+  updated_at: string;
 }
 
 const EventDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [event, setEvent] = useState<EventDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [organization, setOrganization] = useState<Organization | null>(null);
 
   useEffect(() => {
-    const fetchEventDetail = async () => {
-      if (!id) return;
-      
+    const fetchEvent = async () => {
+      if (!id) {
+        setNotFound(true);
+        return;
+      }
+
       try {
         const { data, error } = await supabase
           .from('events')
           .select(`
             *,
             organization:organization_id (
-              id, name
+              id,
+              name,
+              main_image_url
             )
           `)
           .eq('id', id)
           .single();
 
-        if (error || !data) {
+        if (error) {
+          console.error('Erro ao buscar evento:', error);
           setNotFound(true);
-          throw error;
+          return;
         }
 
-        setEvent({
-          id: data.id,
-          title: data.title,
-          date: data.date,
-          location: data.location,
-          description: data.description,
-          category: data.category,
-          main_image_url: data.main_image_url,
-          views: data.views || 0,
-          organization: {
-            id: data.organization.id,
-            name: data.organization.name,
+        if (data) {
+          setEvent(data);
+          if (data.organization) {
+            setOrganization(data.organization as unknown as Organization);
           }
-        });
 
-        // Increment view count
-        try {
-          await supabase.rpc('increment_views', { 
-            row_id: id,
-            table_name: 'events'
-          });
-        } catch (error) {
-          console.error('Error incrementing views:', error);
-        }
-
-      } catch (error) {
-        console.error('Error fetching event details:', error);
-        if (!notFound) {
+          // Increment view count
+          await supabase
+            .from('events')
+            .update({ views: (data.views || 0) + 1 })
+            .eq('id', id);
+        } else {
           setNotFound(true);
         }
+      } catch (error) {
+        console.error('Erro ao buscar evento:', error);
+        setNotFound(true);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
-    fetchEventDetail();
-  }, [id, notFound]);
+    fetchEvent();
+  }, [id]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <>
         <Header />

@@ -25,7 +25,7 @@ const EventList = ({
     const fetchEvents = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('events')
           .select(`
             id,
@@ -37,8 +37,17 @@ const EventList = ({
             views,
             organization_id
           `)
-          .order('date', { ascending: true })
-          .limit(limit);
+          .order('date', { ascending: true });
+        
+        // If organizationId is provided, filter by it
+        if (organizationId) {
+          query = query.eq('organization_id', organizationId);
+        }
+        
+        // Apply limit
+        query = query.limit(limit);
+        
+        const { data, error } = await query;
 
         if (error) {
           console.error('Erro ao buscar eventos:', error);
@@ -71,7 +80,7 @@ const EventList = ({
     };
 
     fetchEvents();
-  }, [limit]);
+  }, [limit, organizationId]); // Add organizationId as a dependency
 
   return (
     <section className="py-12 bg-[#4e049c]">
