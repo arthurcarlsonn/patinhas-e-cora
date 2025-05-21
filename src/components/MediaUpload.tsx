@@ -10,7 +10,7 @@ interface MediaUploadProps {
   label: string;
   accept: string;
   multiple?: boolean;
-  onChange: (files: FileList | null) => void;
+  onChange: (files: File[] | null) => void;
   value?: File[] | null;
   required?: boolean;
   existingUrls?: string[];
@@ -59,7 +59,12 @@ const MediaUpload = ({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    onChange(files);
+    if (files && files.length > 0) {
+      const fileArray = Array.from(files);
+      onChange(fileArray);
+    } else {
+      onChange(null);
+    }
   };
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -80,7 +85,8 @@ const MediaUpload = ({
     setIsDragging(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      onChange(e.dataTransfer.files);
+      const fileArray = Array.from(e.dataTransfer.files);
+      onChange(fileArray);
     }
   }, [onChange]);
 

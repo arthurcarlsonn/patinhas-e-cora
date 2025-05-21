@@ -11,27 +11,6 @@ import EventActions from '@/components/event-detail/EventActions';
 import EventNotFound from '@/components/event-detail/EventNotFound';
 import EventLoading from '@/components/event-detail/EventLoading';
 
-// Define proper interfaces for the components
-interface EventHeaderProps {
-  title: string;
-  category: string;
-  organization: {
-    id: string;
-    name: string;
-  };
-  imageUrl?: string;
-}
-
-interface EventInfoProps {
-  date: string;
-  location: string;
-}
-
-interface EventActionsProps {
-  eventId: string;
-  title: string;
-}
-
 interface EventDetail {
   id: string;
   title: string;
@@ -92,8 +71,8 @@ const EventDetail = () => {
         // Increment view count
         try {
           await supabase.rpc('increment_views', { 
-            table_name: 'events',
-            row_id: id 
+            row_id: id,
+            table_name: 'events'
           });
         } catch (error) {
           console.error('Error incrementing views:', error);

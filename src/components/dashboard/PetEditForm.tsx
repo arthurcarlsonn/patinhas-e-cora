@@ -41,7 +41,7 @@ const PetEditForm = () => {
   });
   
   const [mainImage, setMainImage] = useState<File | null>(null);
-  const [additionalImages, setAdditionalImages] = useState<FileList | null>(null);
+  const [additionalImages, setAdditionalImages] = useState<File[] | null>(null);
   const [currentImages, setCurrentImages] = useState<{id: string, url: string}[]>([]);
 
   // Fetch pet data
@@ -60,7 +60,11 @@ const PetEditForm = () => {
           
         if (petError) throw petError;
         if (!pet) {
-          toast.error("Pet não encontrado. Tente novamente mais tarde.");
+          toast({
+            title: "Erro",
+            description: "Pet não encontrado. Tente novamente mais tarde.",
+            variant: "destructive"
+          });
           navigate('/dashboard');
           return;
         }
@@ -108,7 +112,11 @@ const PetEditForm = () => {
         setCurrentImages(allImages);
       } catch (error) {
         console.error('Error fetching pet data:', error);
-        toast.error("Erro ao carregar dados do pet. Tente novamente mais tarde.");
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar dados do pet. Tente novamente mais tarde.",
+          variant: "destructive"
+        });
       } finally {
         setIsLoading(false);
       }
@@ -179,7 +187,7 @@ const PetEditForm = () => {
       
       // Upload main image if provided
       if (mainImage) {
-        const uploadedUrls = await uploadMultipleImages(new FileList([mainImage], ''));
+        const uploadedUrls = await uploadMultipleImages([mainImage]);
         if (uploadedUrls.length > 0) {
           mainImageUrl = uploadedUrls[0];
         }
@@ -220,13 +228,20 @@ const PetEditForm = () => {
         if (imagesError) throw imagesError;
       }
       
-      toast.success("Os dados do pet foram atualizados com sucesso.");
+      toast({
+        title: "Sucesso",
+        description: "Os dados do pet foram atualizados com sucesso."
+      });
       
       // Redirect to pet detail
       navigate(`/pet/${id}`);
     } catch (error) {
       console.error('Error updating pet:', error);
-      toast.error("Erro ao atualizar o pet. Tente novamente mais tarde.");
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar o pet. Tente novamente mais tarde.",
+        variant: "destructive"
+      });
     } finally {
       setIsSaving(false);
     }
@@ -478,8 +493,8 @@ const PetEditForm = () => {
             label=""
             accept="image/*"
             multiple={false}
-            onChange={(files) => files && files.length > 0 ? setMainImage(files[0]) : setMainImage(null)}
-            value={mainImage ? new FileList([mainImage], '') : null}
+            onChange={(files) => setMainImage(files && files.length > 0 ? files[0] : null)}
+            value={mainImage ? [mainImage] : null}
           />
         </div>
         
