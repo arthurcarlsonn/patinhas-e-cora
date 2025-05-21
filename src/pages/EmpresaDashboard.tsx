@@ -246,8 +246,7 @@ const EmpresaDashboard = () => {
               
               <TabsContent value="clinicas">
                 <ClinicManagement 
-                  companyClinics={companyClinics}
-                  setCompanyClinics={setCompanyClinics}
+                  companyId={user?.id || ''}
                 />
               </TabsContent>
               
