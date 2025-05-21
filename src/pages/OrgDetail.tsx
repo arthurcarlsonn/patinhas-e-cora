@@ -32,6 +32,11 @@ interface OrgCardProps {
   }
 }
 
+interface SocialMedia {
+  instagram?: string;
+  facebook?: string;
+}
+
 const OrgDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
@@ -54,6 +59,17 @@ const OrgDetail = () => {
         if (error) throw error;
 
         if (data) {
+          // Process socialMedia safely
+          let socialMedia: SocialMedia = {};
+          
+          if (data.social_media && typeof data.social_media === 'object') {
+            const socialObj = data.social_media as Record<string, string>;
+            socialMedia = {
+              instagram: socialObj.instagram,
+              facebook: socialObj.facebook
+            };
+          }
+
           setOrg({
             id: data.id,
             name: data.name,
@@ -67,21 +83,19 @@ const OrgDetail = () => {
               email: data.email,
               phone: data.whatsapp,
               website: data.website,
-              socialMedia: data.social_media
+              socialMedia
             }
           });
         }
 
-        // Increment view count - fix the type error
-        if (id) {
-          try {
-            await supabase.rpc('increment_views', { 
-              table_name: 'organizations',
-              row_id: id 
-            });
-          } catch (error) {
-            console.error('Error incrementing views:', error);
-          }
+        // Increment view count
+        try {
+          await supabase.rpc('increment_views', { 
+            table_name: 'organizations',
+            row_id: id 
+          });
+        } catch (error) {
+          console.error('Error incrementing views:', error);
         }
       } catch (error) {
         console.error('Erro ao buscar detalhes da ONG:', error);
@@ -141,8 +155,8 @@ const OrgDetail = () => {
           <div className="w-full md:w-1/3">
             <div className="rounded-lg overflow-hidden border shadow-sm">
               <img 
-                src={org.image} 
-                alt={org.name} 
+                src={org?.image} 
+                alt={org?.name} 
                 className="w-full h-full object-cover aspect-video"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
@@ -153,51 +167,51 @@ const OrgDetail = () => {
           </div>
           
           <div className="w-full md:w-2/3 space-y-4">
-            <h1 className="text-3xl font-bold">{org.name}</h1>
+            <h1 className="text-3xl font-bold">{org?.name}</h1>
             
             <div className="flex flex-wrap gap-2">
               <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                {org.type}
+                {org?.type}
               </span>
               <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
-                {org.actionArea}
+                {org?.actionArea}
               </span>
             </div>
             
             <div className="flex items-center text-gray-500">
               <MapPin size={16} className="mr-1" />
-              <span>{org.location}</span>
+              <span>{org?.location}</span>
             </div>
             
             <div className="flex items-center text-gray-500">
               <Eye size={16} className="mr-1" />
-              <span>{org.views} visualizações</span>
+              <span>{org?.views} visualizações</span>
             </div>
             
             <div className="flex gap-2 flex-wrap">
-              {org.contato?.email && (
+              {org?.contato?.email && (
                 <Button variant="outline" size="sm">
                   <Mail size={16} className="mr-1" />
                   Contato
                 </Button>
               )}
               
-              {org.contato?.website && (
-                <Button variant="outline" size="sm" onClick={() => window.open(org.contato?.website, '_blank')}>
+              {org?.contato?.website && (
+                <Button variant="outline" size="sm" onClick={() => window.open(org?.contato?.website, '_blank')}>
                   <Globe size={16} className="mr-1" />
                   Site
                 </Button>
               )}
               
-              {org.contato?.socialMedia?.instagram && (
-                <Button variant="outline" size="sm" onClick={() => window.open(`https://instagram.com/${org.contato?.socialMedia?.instagram}`, '_blank')}>
+              {org?.contato?.socialMedia?.instagram && (
+                <Button variant="outline" size="sm" onClick={() => window.open(`https://instagram.com/${org?.contato?.socialMedia?.instagram}`, '_blank')}>
                   <Instagram size={16} className="mr-1" />
                   Instagram
                 </Button>
               )}
               
-              {org.contato?.socialMedia?.facebook && (
-                <Button variant="outline" size="sm" onClick={() => window.open(`https://facebook.com/${org.contato?.socialMedia?.facebook}`, '_blank')}>
+              {org?.contato?.socialMedia?.facebook && (
+                <Button variant="outline" size="sm" onClick={() => window.open(`https://facebook.com/${org?.contato?.socialMedia?.facebook}`, '_blank')}>
                   <Facebook size={16} className="mr-1" />
                   Facebook
                 </Button>
@@ -222,31 +236,31 @@ const OrgDetail = () => {
           <TabsContent value="sobre">
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold mb-4">Sobre a ONG</h2>
-              <p className="whitespace-pre-line">{org.description}</p>
+              <p className="whitespace-pre-line">{org?.description}</p>
               
               <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Contato</h3>
                   
-                  {org.contato?.email && (
+                  {org?.contato?.email && (
                     <div className="flex items-center">
                       <Mail size={20} className="mr-2 text-pet-purple" />
-                      <span>{org.contato.email}</span>
+                      <span>{org?.contato.email}</span>
                     </div>
                   )}
                   
-                  {org.contato?.phone && (
+                  {org?.contato?.phone && (
                     <div className="flex items-center">
                       <Phone size={20} className="mr-2 text-pet-purple" />
-                      <span>{org.contato.phone}</span>
+                      <span>{org?.contato.phone}</span>
                     </div>
                   )}
                   
-                  {org.contato?.website && (
+                  {org?.contato?.website && (
                     <div className="flex items-center">
                       <Globe size={20} className="mr-2 text-pet-purple" />
-                      <a href={org.contato.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                        {org.contato.website.replace(/^https?:\/\//, '')}
+                      <a href={org?.contato.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        {org?.contato.website.replace(/^https?:\/\//, '')}
                       </a>
                     </div>
                   )}
@@ -256,7 +270,7 @@ const OrgDetail = () => {
                   <h3 className="text-lg font-medium">Localização</h3>
                   <div className="flex items-center">
                     <MapPin size={20} className="mr-2 text-pet-purple" />
-                    <span>{org.location}</span>
+                    <span>{org?.location}</span>
                   </div>
                 </div>
               </div>
