@@ -16,6 +16,7 @@ import { uploadMultipleImages } from '@/utils/uploadUtils';
 interface ClinicEditFormProps {
   clinicId: string;
   onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
 interface Clinic {
@@ -35,16 +36,14 @@ interface Clinic {
   has_parking?: boolean;
   has_home_service?: boolean;
   main_image_url?: string;
-  social_media?: {
-    instagram?: string;
-    facebook?: string;
-    twitter?: string;
-    linkedin?: string;
-    [key: string]: string | undefined;
-  };
+  social_media?: Record<string, string>;
+  created_at?: string;
+  updated_at?: string;
+  user_id?: string;
+  views?: number;
 }
 
-const ClinicEditForm = ({ clinicId, onSuccess }: ClinicEditFormProps) => {
+const ClinicEditForm = ({ clinicId, onSuccess, onCancel }: ClinicEditFormProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [clinic, setClinic] = useState<Clinic | null>(null);
@@ -86,27 +85,52 @@ const ClinicEditForm = ({ clinicId, onSuccess }: ClinicEditFormProps) => {
         if (error) throw error;
         
         if (data) {
-          setClinic(data);
-          setFormData({
-            name: data.name || '',
-            category: data.category || '',
-            location: data.location || '',
-            address: data.address || '',
-            phone: data.phone || '',
-            email: data.email || '',
-            whatsapp: data.whatsapp || '',
-            website: data.website || '',
-            description: data.description || '',
-            specialties: data.specialties ? data.specialties.join(', ') : '',
-            services: data.services ? data.services.join(', ') : '',
-            open_hours: data.open_hours || '',
+          // Convert data to our Clinic interface type
+          const clinicData: Clinic = {
+            id: data.id,
+            name: data.name,
+            category: data.category,
+            location: data.location,
+            address: data.address,
+            phone: data.phone,
+            email: data.email,
+            whatsapp: data.whatsapp,
+            website: data.website,
+            description: data.description,
+            specialties: Array.isArray(data.specialties) ? data.specialties : [],
+            services: Array.isArray(data.services) ? data.services : [],
+            open_hours: data.open_hours,
             has_parking: data.has_parking || false,
             has_home_service: data.has_home_service || false,
-            socialMedia: formatSocialMediaForInput(data.social_media)
+            main_image_url: data.main_image_url,
+            social_media: typeof data.social_media === 'object' ? data.social_media : {},
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+            user_id: data.user_id,
+            views: data.views || 0
+          };
+          
+          setClinic(clinicData);
+          setFormData({
+            name: clinicData.name || '',
+            category: clinicData.category || '',
+            location: clinicData.location || '',
+            address: clinicData.address || '',
+            phone: clinicData.phone || '',
+            email: clinicData.email || '',
+            whatsapp: clinicData.whatsapp || '',
+            website: clinicData.website || '',
+            description: clinicData.description || '',
+            specialties: clinicData.specialties ? clinicData.specialties.join(', ') : '',
+            services: clinicData.services ? clinicData.services.join(', ') : '',
+            open_hours: clinicData.open_hours || '',
+            has_parking: clinicData.has_parking || false,
+            has_home_service: clinicData.has_home_service || false,
+            socialMedia: formatSocialMediaForInput(clinicData.social_media)
           });
           
-          if (data.main_image_url) {
-            setCurrentImageUrl(data.main_image_url);
+          if (clinicData.main_image_url) {
+            setCurrentImageUrl(clinicData.main_image_url);
           }
         }
       } catch (error: any) {
@@ -124,7 +148,7 @@ const ClinicEditForm = ({ clinicId, onSuccess }: ClinicEditFormProps) => {
     fetchClinic();
   }, [clinicId, toast]);
   
-  const formatSocialMediaForInput = (socialMedia: any) => {
+  const formatSocialMediaForInput = (socialMedia: Record<string, string> | undefined) => {
     if (!socialMedia) return '';
     
     return Object.entries(socialMedia)

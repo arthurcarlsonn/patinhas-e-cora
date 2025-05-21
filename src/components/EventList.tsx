@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import EventCard, { EventCardProps } from './EventCard';
 import { Button } from '@/components/ui/button';
@@ -8,14 +7,16 @@ import { Loader2 } from 'lucide-react';
 
 interface EventListProps {
   title: string;
-  viewAllLink: string;
+  viewAllLink?: string;
   limit?: number;
+  organizationId?: string;
 }
 
 const EventList = ({
   title,
   viewAllLink,
-  limit = 8
+  limit = 6,
+  organizationId
 }: EventListProps) => {
   const [events, setEvents] = useState<EventCardProps[]>([]);
   const [isLoading, setIsLoading] = useState(true);

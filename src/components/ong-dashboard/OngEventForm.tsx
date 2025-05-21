@@ -10,8 +10,9 @@ import { toast } from '@/components/ui/sonner';
 import { Loader2, Calendar, MapPin, Upload } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { uploadMultipleImages } from '@/utils/uploadUtils';
+import { MediaUpload } from '@/components/ui/media-upload';
 
-const OngEventForm = () => {
+const OngEventForm = ({ onSuccess }: { onSuccess?: () => void }) => {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -25,7 +26,7 @@ const OngEventForm = () => {
     description: '',
     category: ''
   });
-  const [image, setImage] = useState<File | null>(null);
+  const [image, setImage] = useState<File[] | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -74,11 +75,11 @@ const OngEventForm = () => {
     try {
       // Upload da imagem
       let imageUrl = null;
-      if (image) {
-        const images = new DataTransfer();
-        images.items.add(image);
-        const uploadedUrls = await uploadMultipleImages(images.files);
-        imageUrl = uploadedUrls[0];
+      if (image && image.length > 0) {
+        const urls = await uploadMultipleImages(image);
+        if (urls.length > 0) {
+          imageUrl = urls[0];
+        }
       }
 
       // Combinar data e hora
@@ -267,26 +268,16 @@ const OngEventForm = () => {
           </div>
           
           <div>
-            <Label htmlFor="image">Imagem do evento (opcional)</Label>
-            <div className="flex items-center mt-2">
-              <Input
-                id="image"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => e.target.files && setImage(e.target.files[0])}
-              />
-              <Label
-                htmlFor="image"
-                className="cursor-pointer flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Selecionar imagem
-              </Label>
-              <span className="ml-4 text-sm text-gray-500">
-                {image ? image.name : 'Nenhuma imagem selecionada'}
-              </span>
-            </div>
+            <Label htmlFor="image">Imagem do Evento</Label>
+            <MediaUpload 
+              id="event-image"
+              label="Selecione uma imagem para o evento"
+              accept="image/*"
+              multiple={false}
+              onChange={setImage}
+              value={image}
+              required={false}
+            />
           </div>
           
           <Button

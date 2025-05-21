@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,7 +37,7 @@ const ProductManagement = ({ companyId }: ProductManagementProps) => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('company_id', companyId)
+        .eq('user_id', companyId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -50,7 +49,8 @@ const ProductManagement = ({ companyId }: ProductManagementProps) => {
           image: product.main_image_url || '/placeholder.svg',
           price: product.price,
           location: product.location,
-          category: product.category
+          category: product.category,
+          views: product.views || 0
         }));
         
         setProducts(formattedProducts);

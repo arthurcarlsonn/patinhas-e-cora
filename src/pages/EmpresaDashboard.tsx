@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -241,8 +240,7 @@ const EmpresaDashboard = () => {
               
               <TabsContent value="produtos">
                 <ProductManagement 
-                  companyProducts={companyProducts}
-                  setCompanyProducts={setCompanyProducts}
+                  companyId={user?.id || ''}
                 />
               </TabsContent>
               

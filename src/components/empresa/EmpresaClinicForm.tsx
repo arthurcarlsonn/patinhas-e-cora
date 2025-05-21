@@ -14,7 +14,11 @@ import { Loader2 } from 'lucide-react';
 import MediaUpload from '@/components/MediaUpload';
 import { uploadMultipleImages } from '@/utils/uploadUtils';
 
-const EmpresaClinicForm = () => {
+interface EmpresaClinicFormProps {
+  onSubmitSuccess: () => void;
+}
+
+const EmpresaClinicForm = ({ onSubmitSuccess }: EmpresaClinicFormProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();

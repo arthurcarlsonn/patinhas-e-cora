@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -220,8 +219,6 @@ const ClinicManagement = ({ companyClinics, setCompanyClinics }: ClinicManagemen
         
         <TabsContent value="add">
           <EmpresaClinicForm 
-            companyClinics={companyClinics}
-            setCompanyClinics={setCompanyClinics}
             onSubmitSuccess={() => setActiveTab('list')}
           />
         </TabsContent>
@@ -229,9 +226,9 @@ const ClinicManagement = ({ companyClinics, setCompanyClinics }: ClinicManagemen
         <TabsContent value="edit">
           {selectedClinic && (
             <ClinicEditForm 
-              clinic={selectedClinic}
+              clinicId={selectedClinic.id}
               onCancel={handleCancelEdit}
-              onUpdate={handleEditComplete}
+              onSuccess={() => handleEditComplete(selectedClinic)}
             />
           )}
         </TabsContent>

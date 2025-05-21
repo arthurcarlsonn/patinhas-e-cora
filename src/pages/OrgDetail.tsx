@@ -1,15 +1,20 @@
-
-// Fix the TypeScript errors in the OrgDetail.tsx file
-// The main issues are related to property names and EventList props
-
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import EventList from '@/components/EventList';
-import { Instagram, Facebook, Globe, Mail, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Loader2, MapPin, Calendar, Mail, Phone, Globe, Instagram, Facebook, Clock, Info } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import PetList from '@/components/PetList';
+import EventList from '@/components/EventList';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Organization {
   id: string;
@@ -17,271 +22,299 @@ interface Organization {
   type: string;
   action_area: string;
   description: string;
-  whatsapp: string;
-  email: string;
-  website?: string;
   location: string;
+  email: string;
+  whatsapp: string;
+  website?: string;
   main_image_url?: string;
-  social_media?: {
-    instagram?: string;
-    facebook?: string;
-  };
+  social_media?: Record<string, string>; // Changed from {instagram?: string; facebook?: string}
+  user_id: string;
   views: number;
+  created_at: string;
+  updated_at: string;
 }
 
 const OrgDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [org, setOrg] = useState<Organization | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('sobre');
+  const { user } = useAuth();
+  const isOwner = user?.id === organization?.user_id;
 
   useEffect(() => {
-    const fetchOrgDetail = async () => {
-      if (!id) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('organizations')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (error) {
-          setNotFound(true);
-          throw error;
-        }
-
-        if (data) {
-          setOrg(data);
-
-          // Increment view count
-          try {
-            await supabase.rpc('increment_views', { 
-              table_name: 'organizations',
-              row_id: id 
-            });
-          } catch (error) {
-            console.error('Error incrementing views:', error);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching organization details:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrgDetail();
+    if (id) {
+      fetchOrganizationDetails(id);
+    }
   }, [id]);
 
-  if (loading) {
+  const fetchOrganizationDetails = async (id: string) => {
+    try {
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (orgError) throw orgError;
+      
+      if (orgData) {
+        // Convert social_media to the right format
+        const org: Organization = {
+          ...orgData,
+          social_media: typeof orgData.social_media === 'object' ? 
+            orgData.social_media : {}
+        };
+        
+        setOrganization(org);
+        setIsLoading(false);
+
+        // Update view count
+        updateViewCount(id, orgData.views || 0);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar ONG:', error);
+      setError('Não foi possível carregar os detalhes da ONG.');
+      setIsLoading(false);
+    }
+  };
+
+  const updateViewCount = async (orgId: string, currentViews: number) => {
+    try {
+      await supabase
+        .from('organizations')
+        .update({ views: currentViews + 1 })
+        .eq('id', orgId);
+    } catch (error) {
+      console.error('Erro ao atualizar visualizações:', error);
+    }
+  };
+
+  if (isLoading) {
     return (
-      <>
+      <div className="min-h-screen flex flex-col">
         <Header />
-        <div className="container mx-auto px-4 py-12">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-64 bg-gray-200 rounded"></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="col-span-2 space-y-4">
-                <div className="h-6 bg-gray-200 rounded w-1/4"></div>
-                <div className="h-24 bg-gray-200 rounded"></div>
-              </div>
-              <div className="space-y-4">
-                <div className="h-32 bg-gray-200 rounded"></div>
-                <div className="h-32 bg-gray-200 rounded"></div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <main className="flex-grow flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </main>
         <Footer />
-      </>
+      </div>
     );
   }
 
-  if (notFound || !org) {
+  if (error || !organization) {
     return (
-      <>
+      <div className="min-h-screen flex flex-col">
         <Header />
-        <div className="container mx-auto px-4 py-12 text-center">
-          <h1 className="text-3xl font-bold mb-4">ONG não encontrada</h1>
-          <p className="text-gray-600 mb-8">
-            Não foi possível encontrar a ONG solicitada. Talvez ela tenha sido removida
-            ou o link está incorreto.
-          </p>
-          <Button
-            onClick={() => window.history.back()}
-            className="bg-pet-purple hover:bg-pet-lightPurple"
-          >
-            Voltar
-          </Button>
-        </div>
+        <main className="flex-grow flex items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-center">Erro</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-center">{error || 'ONG não encontrada'}</p>
+            </CardContent>
+            <CardFooter className="flex justify-center">
+              <Link to="/ongs">
+                <Button>Voltar para ONGs</Button>
+              </Link>
+            </CardFooter>
+          </Card>
+        </main>
         <Footer />
-      </>
+      </div>
     );
   }
-
-  const getOrgTypeLabel = (type: string) => {
-    const types: Record<string, string> = {
-      'ong': 'ONG',
-      'abrigo': 'Abrigo',
-      'protetor': 'Protetor Independente',
-      'voluntario': 'Voluntário'
-    };
-    return types[type] || type;
-  };
-
-  const getActionAreaLabel = (area: string) => {
-    const areas: Record<string, string> = {
-      'resgate': 'Resgate',
-      'adocao': 'Adoção',
-      'saude': 'Saúde',
-      'alimentacao': 'Alimentação',
-      'castracao': 'Castração',
-      'educacao': 'Educação',
-      'multipla': 'Múltiplas áreas'
-    };
-    return areas[area] || area;
-  };
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="container mx-auto px-4 py-8">
-        {/* ONG Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-pet-darkPurple mb-2">{org.name}</h1>
-          <div className="flex flex-wrap gap-2 mb-4">
-            <span className="bg-pet-softPurple text-pet-darkPurple text-sm px-3 py-1 rounded-full">
-              {getOrgTypeLabel(org.type)}
-            </span>
-            <span className="bg-pet-softPurple text-pet-darkPurple text-sm px-3 py-1 rounded-full">
-              {getActionAreaLabel(org.action_area)}
-            </span>
-          </div>
-        </div>
-
-        {/* Main content area */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left column - Image and Description */}
-          <div className="lg:col-span-2 space-y-6">
-            {org.main_image_url && (
-              <div className="rounded-lg overflow-hidden border">
-                <img 
-                  src={org.main_image_url} 
-                  alt={org.name} 
-                  className="w-full aspect-video object-cover"
-                />
-              </div>
-            )}
-
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-bold mb-4 text-pet-darkPurple">Sobre a ONG</h2>
-              <p className="text-gray-700 whitespace-pre-line">{org.description}</p>
-            </div>
-          </div>
-
-          {/* Right column - Contact and social info */}
-          <div className="space-y-6">
-            {/* Contact info */}
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-bold mb-4 text-pet-darkPurple">Contato</h2>
-              <div className="space-y-4">
-                {org.location && (
-                  <div className="flex items-start">
-                    <MapPin className="h-5 w-5 text-pet-purple mr-2 mt-0.5" />
-                    <span>{org.location}</span>
+      <main className="flex-grow py-8">
+        <div className="container mx-auto px-4">
+          {/* Hero Section */}
+          <div className="relative rounded-lg overflow-hidden mb-8 bg-gradient-to-r from-pet-purple to-pet-lightPurple">
+            <div className="absolute inset-0 bg-black/30"></div>
+            <div className="relative z-10 p-8 md:p-12 flex flex-col md:flex-row items-center md:items-end gap-6">
+              <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-white">
+                <AvatarImage src={organization.main_image_url || ''} alt={organization.name} />
+                <AvatarFallback className="text-2xl md:text-4xl bg-pet-purple text-white">
+                  {organization.name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="text-center md:text-left text-white">
+                <h1 className="text-3xl md:text-4xl font-bold mb-2">{organization.name}</h1>
+                <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                  <Badge variant="outline" className="bg-white/20 text-white border-white/40">
+                    {organization.type}
+                  </Badge>
+                  <Badge variant="outline" className="bg-white/20 text-white border-white/40">
+                    {organization.action_area}
+                  </Badge>
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4" />
+                    <span>{organization.location}</span>
                   </div>
-                )}
-                
-                {org.whatsapp && (
-                  <div className="flex items-start">
-                    <Phone className="h-5 w-5 text-pet-purple mr-2 mt-0.5" />
-                    <a 
-                      href={`https://wa.me/${org.whatsapp.replace(/\D/g, '')}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="hover:text-pet-purple"
-                    >
-                      {org.whatsapp}
-                    </a>
-                  </div>
-                )}
-                
-                {org.email && (
-                  <div className="flex items-start">
-                    <Mail className="h-5 w-5 text-pet-purple mr-2 mt-0.5" />
-                    <a 
-                      href={`mailto:${org.email}`}
-                      className="hover:text-pet-purple break-all"
-                    >
-                      {org.email}
-                    </a>
-                  </div>
-                )}
-                
-                {org.website && (
-                  <div className="flex items-start">
-                    <Globe className="h-5 w-5 text-pet-purple mr-2 mt-0.5" />
-                    <a 
-                      href={org.website.startsWith('http') ? org.website : `https://${org.website}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-pet-purple break-all"
-                    >
-                      {org.website.replace(/^https?:\/\//, '')}
-                    </a>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Social media */}
-            {org.social_media && (
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h2 className="text-xl font-bold mb-4 text-pet-darkPurple">Redes Sociais</h2>
-                <div className="space-y-4">
-                  {org.social_media.instagram && (
-                    <a 
-                      href={`https://instagram.com/${org.social_media.instagram.replace('@', '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center hover:text-pet-purple"
-                    >
-                      <Instagram className="h-5 w-5 text-pet-purple mr-2" />
-                      <span>{org.social_media.instagram}</span>
-                    </a>
-                  )}
-                  
-                  {org.social_media.facebook && (
-                    <a 
-                      href={`https://facebook.com/${org.social_media.facebook.replace('/', '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center hover:text-pet-purple"
-                    >
-                      <Facebook className="h-5 w-5 text-pet-purple mr-2" />
-                      <span>{org.social_media.facebook}</span>
-                    </a>
-                  )}
                 </div>
               </div>
-            )}
+              {isOwner && (
+                <div className="ml-auto">
+                  <Link to={`/ong/dashboard`}>
+                    <Button variant="outline" className="bg-white text-pet-purple hover:bg-gray-100">
+                      Gerenciar ONG
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Events from this organization */}
-        <div className="mt-12">
-          <EventList
-            title="Eventos desta ONG"
-            viewAllLink="/ver-eventos"
-            limit={4}
-            organizationId={id}
-          />
+          {/* Tabs Navigation */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+            <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto">
+              <TabsTrigger value="sobre">Sobre</TabsTrigger>
+              <TabsTrigger value="pets">Pets</TabsTrigger>
+              <TabsTrigger value="eventos">Eventos</TabsTrigger>
+            </TabsList>
+
+            {/* About Tab */}
+            <TabsContent value="sobre" className="mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="md:col-span-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Info className="h-5 w-5" /> Sobre a ONG
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="whitespace-pre-line">{organization.description}</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="mt-6">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Calendar className="h-5 w-5" /> Histórico
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Clock className="h-4 w-4" />
+                        <span>
+                          Cadastrada em{' '}
+                          {format(parseISO(organization.created_at), "dd 'de' MMMM 'de' yyyy", {
+                            locale: ptBR,
+                          })}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Contato</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {organization.email && (
+                        <div className="flex items-center gap-3">
+                          <Mail className="h-5 w-5 text-pet-purple" />
+                          <a
+                            href={`mailto:${organization.email}`}
+                            className="text-pet-purple hover:underline"
+                          >
+                            {organization.email}
+                          </a>
+                        </div>
+                      )}
+
+                      {organization.whatsapp && (
+                        <div className="flex items-center gap-3">
+                          <Phone className="h-5 w-5 text-pet-purple" />
+                          <a
+                            href={`https://wa.me/${organization.whatsapp.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-pet-purple hover:underline"
+                          >
+                            {organization.whatsapp}
+                          </a>
+                        </div>
+                      )}
+
+                      {organization.website && (
+                        <div className="flex items-center gap-3">
+                          <Globe className="h-5 w-5 text-pet-purple" />
+                          <a
+                            href={organization.website.startsWith('http') ? organization.website : `https://${organization.website}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-pet-purple hover:underline"
+                          >
+                            {organization.website}
+                          </a>
+                        </div>
+                      )}
+
+                      {organization.social_media && (
+                        <div className="mt-4">
+                          <Separator className="my-4" />
+                          <div className="flex gap-4">
+                            {organization.social_media.instagram && (
+                              <a
+                                href={`https://instagram.com/${organization.social_media.instagram.replace('@', '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-pet-purple hover:text-pet-lightPurple"
+                              >
+                                <Instagram className="h-6 w-6" />
+                              </a>
+                            )}
+                            {organization.social_media.facebook && (
+                              <a
+                                href={`https://facebook.com/${organization.social_media.facebook}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-pet-purple hover:text-pet-lightPurple"
+                              >
+                                <Facebook className="h-6 w-6" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Pets Tab */}
+            <TabsContent value="pets" className="mt-6">
+              <PetList
+                title="Pets para Adoção"
+                viewAllLink="/pets"
+                limit={6}
+                organizationId={organization.id}
+              />
+            </TabsContent>
+
+            {/* Events Tab */}
+            <TabsContent value="eventos" className="mt-6">
+              <EventList
+                title="Eventos da ONG"
+                viewAllLink="/eventos"
+                limit={6}
+                organizationId={organization.id}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
       <Footer />
-    </>
+    </div>
   );
 };
 

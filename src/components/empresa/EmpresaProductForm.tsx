@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +21,8 @@ interface Product {
   location: string;
   category: string;
   main_image_url?: string;
+  contact?: string;
+  user_id?: string;
 }
 
 const EmpresaProductForm = () => {
@@ -37,7 +38,7 @@ const EmpresaProductForm = () => {
     category: '',
     main_image_url: ''
   });
-  const [image, setImage] = useState<File | null>(null);
+  const [image, setImage] = useState<File[] | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [company, setCompany] = useState<{ id: string; company_name: string } | null>(null);
@@ -98,10 +99,10 @@ const EmpresaProductForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!company) {
+    if (!user) {
       toast({
         title: "Erro",
-        description: "Você precisa cadastrar sua empresa primeiro.",
+        description: "Você precisa estar logado para cadastrar produtos.",
         variant: "destructive"
       });
       return;
@@ -111,36 +112,25 @@ const EmpresaProductForm = () => {
     try {
       // Upload image if it exists
       let imageUrl = product.main_image_url;
-      if (image) {
-        const fileExt = image.name.split('.').pop();
-        const filePath = `products/${company.id}/${Date.now()}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('pet-images')
-          .upload(filePath, image, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (uploadError) {
-          throw uploadError;
+      if (image && image.length > 0) {
+        const urls = await uploadMultipleImages(image);
+        if (urls.length > 0) {
+          imageUrl = urls[0];
         }
-
-        const { data } = supabase.storage.from('pet-images').getPublicUrl(filePath);
-        imageUrl = data.publicUrl;
       }
 
       // Create product in database
       const { data: productData, error: productError } = await supabase
         .from('products')
         .insert({
-          company_id: company.id,
+          user_id: user.id,
           title: product.title,
           description: product.description,
           price: product.price,
           location: product.location,
           category: product.category,
-          main_image_url: imageUrl
+          main_image_url: imageUrl,
+          contact: 'contact' in product ? product.contact : ''
         })
         .select()
         .single();
@@ -251,7 +241,7 @@ const EmpresaProductForm = () => {
                 multiple={false}
                 onChange={(files) => {
                   if (files && files.length > 0) {
-                    setImage(files[0]);
+                    setImage(files);
                   } else {
                     setImage(null);
                   }
@@ -285,12 +275,14 @@ const EmpresaProductForm = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {products.map((product) => (
               <ProductCard
-                key={product.id}
-                id={product.id}
+                key={product.id || ''}
+                id={product.id || ''}
                 title={product.title}
                 image={product.main_image_url || '/placeholder.svg'}
                 price={product.price}
+                category={product.category}
                 location={product.location}
+                views={0}
               />
             ))}
           </div>
