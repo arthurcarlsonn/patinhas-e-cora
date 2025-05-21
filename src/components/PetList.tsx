@@ -25,17 +25,30 @@ const PetList = ({
 }: PetListProps) => {
   const [pets, setPets] = useState<PetCardProps[]>(initialPets || []);
   const [isLoading, setIsLoading] = useState(!useMockData);
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
     if (useMockData && initialPets) {
       setPets(initialPets);
+      setCount(initialPets.length);
       return;
     }
 
     const fetchPets = async () => {
       setIsLoading(true);
       try {
-        console.log("Fetching pets with status:", status);
+        // Primeiro vamos buscar a contagem total para o status selecionado
+        let countQuery = supabase
+          .from('pets')
+          .select('id', { count: 'exact' });
+        
+        if (status !== 'all') {
+          countQuery = countQuery.eq('status', status);
+        }
+        
+        const { count: totalCount } = await countQuery;
+        
+        // Agora buscar os pets com o limite definido
         let query = supabase
           .from('pets')
           .select('*')
@@ -54,7 +67,9 @@ const PetList = ({
         }
 
         if (data) {
-          console.log("Pets data received:", data);
+          // Atualizar contagem
+          setCount(totalCount || 0);
+          
           // Converter dados do banco para o formato do PetCard
           const formattedPets: PetCardProps[] = data.map(pet => ({
             id: pet.id,
@@ -95,7 +110,9 @@ const PetList = ({
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div className="mb-4 md:mb-0">
             <h2 className="text-2xl md:text-3xl font-bold text-[#5D23BE] uppercase">{title}</h2>
-            <p className="text-sm md:text-base text-gray-600">Encontre tudo o que seu pet precisa em um só lugar</p>
+            <p className="text-sm md:text-base text-gray-600">
+              {count > 0 ? `${count} pets encontrados` : 'Nenhum pet encontrado'}
+            </p>
           </div>
           <Link to={viewAllLink}>
             <Button variant="purple">

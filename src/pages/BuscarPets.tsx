@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Input } from '@/components/ui/input';
@@ -7,22 +7,135 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search } from 'lucide-react';
-
-import { petsMock } from '@/data/mockData';
+import { Search, Loader2 } from 'lucide-react';
+import PetCard, { PetCardProps } from '@/components/PetCard';
+import { supabase } from '@/integrations/supabase/client';
 
 const BuscarPets = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [currentTab, setCurrentTab] = useState('todos');
+  const [pets, setPets] = useState<PetCardProps[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [filteredPets, setFilteredPets] = useState<PetCardProps[]>([]);
   
   const filterOptions = [
     { label: 'Perdidos', value: 'perdido' },
     { label: 'Encontrados', value: 'encontrado' },
     { label: 'Para adoção', value: 'adocao' },
-    { label: 'Cachorros', value: 'cachorro' },
-    { label: 'Gatos', value: 'gato' }
+    { label: 'Avistados', value: 'avistado' },
+    { label: 'Cachorros', value: 'Cachorro' },
+    { label: 'Gatos', value: 'Gato' },
+    { label: 'Pequeno', value: 'Pequeno' },
+    { label: 'Médio', value: 'Médio' },
+    { label: 'Grande', value: 'Grande' },
+    { label: 'Macho', value: 'Macho' },
+    { label: 'Fêmea', value: 'Fêmea' },
   ];
+
+  const tabs = [
+    { id: 'todos', label: 'Todos' },
+    { id: 'perdido', label: 'Perdidos' },
+    { id: 'encontrado', label: 'Encontrados' },
+    { id: 'adocao', label: 'Para adoção' },
+    { id: 'avistado', label: 'Avistados' },
+  ];
+
+  // Função para buscar pets no Supabase
+  useEffect(() => {
+    const fetchPets = async () => {
+      setIsLoading(true);
+      try {
+        // Buscar todos os pets
+        const { data, error } = await supabase
+          .from('pets')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Erro ao buscar pets:', error);
+          return;
+        }
+
+        if (data) {
+          // Calcular o total de pets
+          setTotalCount(data.length);
+
+          // Converter dados do banco para o formato do PetCard
+          const formattedPets: PetCardProps[] = data.map(pet => ({
+            id: pet.id,
+            name: pet.name,
+            type: pet.type,
+            status: pet.status as 'perdido' | 'encontrado' | 'adocao',
+            image: pet.main_image_url || `https://place-puppy.com/300x300`,
+            location: pet.location,
+            timeRegistered: new Date(pet.created_at).toLocaleDateString('pt-BR'),
+            views: pet.views || 0,
+            raca: pet.breed,
+            idade: pet.age,
+            genero: pet.gender as 'Macho' | 'Fêmea',
+            porte: pet.size as 'Pequeno' | 'Médio' | 'Grande',
+            cor: pet.color,
+            temperamento: pet.temperament,
+            castrado: pet.is_neutered,
+            vacinasEmDia: pet.is_vaccinated,
+            aceitaCriancas: pet.accepts_children,
+            aceitaOutrosAnimais: pet.accepts_other_animals
+          }));
+          
+          setPets(formattedPets);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar pets:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPets();
+  }, []);
+
+  // Aplicar filtros sempre que pets, searchTerm, activeFilters ou currentTab mudarem
+  useEffect(() => {
+    const applyFilters = () => {
+      let filtered = [...pets];
+      
+      // Filtro por pesquisa de texto
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        filtered = filtered.filter(pet => 
+          pet.name.toLowerCase().includes(term) ||
+          pet.type.toLowerCase().includes(term) ||
+          pet.location.toLowerCase().includes(term) ||
+          (pet.raca && pet.raca.toLowerCase().includes(term)) ||
+          (pet.cor && pet.cor.toLowerCase().includes(term))
+        );
+      }
+      
+      // Filtro por tab (status)
+      if (currentTab !== 'todos') {
+        filtered = filtered.filter(pet => pet.status === currentTab);
+      }
+      
+      // Filtros ativos (tags)
+      if (activeFilters.length > 0) {
+        filtered = filtered.filter(pet => {
+          // Verifica se algum dos filtros ativos corresponde a alguma propriedade do pet
+          return activeFilters.some(filter => 
+            pet.status === filter || 
+            pet.type === filter ||
+            pet.porte === filter ||
+            pet.genero === filter
+          );
+        });
+      }
+
+      setFilteredPets(filtered);
+    };
+    
+    applyFilters();
+  }, [pets, searchTerm, activeFilters, currentTab]);
 
   const toggleFilter = (filter: string) => {
     setActiveFilters(prev => 
@@ -32,30 +145,16 @@ const BuscarPets = () => {
     );
   };
 
-  const tabs = [
-    { id: 'todos', label: 'Todos' },
-    { id: 'perdido', label: 'Perdidos' },
-    { id: 'encontrado', label: 'Encontrados' },
-    { id: 'adocao', label: 'Para adoção' }
-  ];
-
-  // Filtragem dos pets com base nos critérios selecionados
-  const filteredPets = petsMock.filter(pet => {
-    // Filtragem por pesquisa de texto
-    const matchesSearch = searchTerm === '' || 
-      pet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pet.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pet.location.toLowerCase().includes(searchTerm.toLowerCase());
-
-    // Filtragem por categoria (tab)
-    const matchesTab = currentTab === 'todos' || pet.status === currentTab;
-
-    // Filtragem por filtros ativos
-    const matchesFilters = activeFilters.length === 0 || 
-      (activeFilters.includes(pet.status) || activeFilters.includes(pet.type.toLowerCase()));
-
-    return matchesSearch && matchesTab && matchesFilters;
-  });
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // A busca já é aplicada pelo useEffect, não precisamos fazer nada aqui
+  };
+  
+  const clearFilters = () => {
+    setSearchTerm('');
+    setActiveFilters([]);
+    setCurrentTab('todos');
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -68,30 +167,27 @@ const BuscarPets = () => {
             <p className="text-lg max-w-3xl mx-auto">
               Encontre pets perdidos ou esperando por um novo lar. Use os filtros para refinar sua busca.
             </p>
+            <p className="text-lg mt-2">
+              <span className="font-bold">{totalCount}</span> pets cadastrados
+            </p>
           </div>
         </section>
 
         {/* Barra de Pesquisa */}
         <section className="py-8 bg-white">
           <div className="container mx-auto px-4">
-            <div className="max-w-3xl mx-auto">
+            <form onSubmit={handleSearch} className="max-w-3xl mx-auto">
               <div className="relative">
                 <Input
                   type="text"
-                  placeholder="Buscar pet por nome, tipo ou localização..."
+                  placeholder="Buscar pet por nome, tipo, raça, cor ou localização..."
                   className="pl-10 py-6 text-lg rounded-full"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Button 
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-pet-purple hover:bg-pet-lightPurple rounded-full"
-                  size="sm"
-                >
-                  Buscar
-                </Button>
               </div>
-            </div>
+            </form>
           </div>
         </section>
 
@@ -139,66 +235,35 @@ const BuscarPets = () => {
                   </TabsList>
                 </div>
                 
-                {tabs.map(tab => (
-                  <TabsContent key={tab.id} value={tab.id} className="p-0 border-none">
-                    {filteredPets.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {filteredPets.map((pet) => (
-                          <Card key={pet.id} className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all">
-                            <div className="aspect-square relative">
-                              <img 
-                                src={pet.image} 
-                                alt={pet.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.src = "https://via.placeholder.com/300x300?text=Pet";
-                                }}
-                              />
-                              <Badge 
-                                className={`absolute top-2 right-2 
-                                  ${pet.status === 'perdido' ? 'bg-red-500' : 
-                                    pet.status === 'encontrado' ? 'bg-yellow-500' : 
-                                    'bg-green-500'}`}
-                              >
-                                {pet.status === 'perdido' ? 'Perdido' : 
-                                  pet.status === 'encontrado' ? 'Encontrado' : 'Para Adoção'}
-                              </Badge>
-                            </div>
-                            <CardContent className="p-4">
-                              <div className="flex justify-between items-start mb-2">
-                                <h3 className="text-lg font-bold text-pet-darkPurple">{pet.name}</h3>
-                                <Badge variant="outline" className="border-pet-purple text-pet-purple">
-                                  {pet.type}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-gray-500 mb-2">{pet.location}</p>
-                              <div className="flex justify-between text-xs text-gray-500">
-                                <span>{pet.timeRegistered}</span>
-                                <span>{pet.views} visualizações</span>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-16">
-                        <p className="text-lg text-gray-500">Nenhum pet encontrado com esses critérios.</p>
-                        <Button 
-                          variant="link" 
-                          className="text-pet-purple mt-2"
-                          onClick={() => {
-                            setSearchTerm('');
-                            setActiveFilters([]);
-                            setCurrentTab('todos');
-                          }}
-                        >
-                          Limpar filtros
-                        </Button>
-                      </div>
-                    )}
-                  </TabsContent>
-                ))}
+                {isLoading ? (
+                  <div className="flex justify-center items-center py-16">
+                    <Loader2 className="h-12 w-12 animate-spin text-pet-purple" />
+                    <span className="ml-2 text-xl text-gray-600">Carregando pets...</span>
+                  </div>
+                ) : (
+                  tabs.map(tab => (
+                    <TabsContent key={tab.id} value={tab.id} className="p-0 border-none">
+                      {filteredPets.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                          {filteredPets.map((pet) => (
+                            <PetCard key={pet.id} {...pet} />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-16">
+                          <p className="text-lg text-gray-500">Nenhum pet encontrado com esses critérios.</p>
+                          <Button 
+                            variant="link" 
+                            className="text-pet-purple mt-2"
+                            onClick={clearFilters}
+                          >
+                            Limpar filtros
+                          </Button>
+                        </div>
+                      )}
+                    </TabsContent>
+                  ))
+                )}
               </Tabs>
             </div>
           </div>
