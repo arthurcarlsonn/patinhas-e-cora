@@ -1,116 +1,70 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { ClinicCardProps } from '@/components/ClinicCard';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Pencil, Trash, Eye, Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import EmpresaClinicForm from './EmpresaClinicForm';
+import { Loader2, Plus, Edit, Trash2, AlertCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import ClinicEditForm from './ClinicEditForm';
 
-interface ClinicManagementProps {
-  companyClinics: ClinicCardProps[];
-  setCompanyClinics: (clinics: ClinicCardProps[]) => void;
+interface ClinicCardProps {
+  id: string;
+  name: string;
+  category: string;
+  location: string;
+  image: string;
 }
 
-const ClinicManagement = ({ companyClinics, setCompanyClinics }: ClinicManagementProps) => {
+interface ClinicManagementProps {
+  companyId: string;
+}
+
+const ClinicManagement = ({ companyId }: ClinicManagementProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'list' | 'add' | 'edit'>('list');
-  const [selectedClinic, setSelectedClinic] = useState<ClinicCardProps | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  
+  const [clinics, setClinics] = useState<ClinicCardProps[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedClinic, setSelectedClinic] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClinicFormOpen, setIsClinicFormOpen] = useState(false);
 
-  const handleDeleteClinic = async (clinicId: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta clínica?")) return;
-    
-    setIsLoading(true);
-    try {
-      // First delete related veterinarians
-      const { error: vetsError } = await supabase
-        .from('veterinarians')
-        .delete()
-        .eq('clinic_id', clinicId);
-      
-      if (vetsError) throw vetsError;
-      
-      // Then delete the clinic
-      const { error } = await supabase
-        .from('clinics')
-        .delete()
-        .eq('id', clinicId);
-      
-      if (error) throw error;
-      
-      // Update state to remove the deleted clinic
-      setCompanyClinics(companyClinics.filter(clinic => clinic.id !== clinicId));
-      
-      toast({
-        title: "Clínica excluída",
-        description: "A clínica foi excluída com sucesso.",
-      });
-    } catch (error) {
-      console.error('Erro ao excluir clínica:', error);
-      toast({
-        title: "Erro ao excluir",
-        description: "Não foi possível excluir a clínica. Tente novamente.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  useEffect(() => {
+    fetchClinics();
+  }, [companyId]);
 
-  const handleEditClick = (clinic: ClinicCardProps) => {
-    setSelectedClinic(clinic);
-    setActiveTab('edit');
-  };
-
-  const handleEditComplete = (updatedClinic: ClinicCardProps) => {
-    setCompanyClinics(
-      companyClinics.map(c => c.id === updatedClinic.id ? updatedClinic : c)
-    );
-    setActiveTab('list');
-    setSelectedClinic(null);
-  };
-
-  const handleCancelEdit = () => {
-    setActiveTab('list');
-    setSelectedClinic(null);
-  };
-
-  const refreshClinics = async () => {
-    if (!user) return;
-    
+  const fetchClinics = async () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('clinics')
         .select('*')
-        .eq('user_id', user.id);
-        
+        .eq('user_id', companyId)
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
-      
+
       if (data) {
-        // Convert database data to ClinicCardProps format
         const formattedClinics: ClinicCardProps[] = data.map(clinic => ({
           id: clinic.id,
           name: clinic.name,
-          image: clinic.main_image_url || `https://via.placeholder.com/300x200?text=Clínica`,
-          location: clinic.location,
           category: clinic.category,
-          views: clinic.views || 0
+          location: clinic.location,
+          image: clinic.main_image_url || '/placeholder.svg'
         }));
         
-        setCompanyClinics(formattedClinics);
+        setClinics(formattedClinics);
       }
-    } catch (error) {
-      console.error('Erro ao carregar clínicas:', error);
+    } catch (error: any) {
+      console.error('Error fetching clinics:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível carregar as clínicas.",
+        title: "Erro ao carregar clínicas",
+        description: error.message,
         variant: "destructive"
       });
     } finally {
@@ -118,121 +72,198 @@ const ClinicManagement = ({ companyClinics, setCompanyClinics }: ClinicManagemen
     }
   };
 
+  const handleDeleteClinic = async () => {
+    if (!selectedClinic) return;
+    
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('clinics')
+        .delete()
+        .eq('id', selectedClinic);
+
+      if (error) throw error;
+
+      // Update local state
+      setClinics(clinics.filter(c => c.id !== selectedClinic));
+      
+      toast({
+        title: "Clínica excluída",
+        description: "A clínica foi excluída com sucesso."
+      });
+      
+    } catch (error: any) {
+      console.error('Error deleting clinic:', error);
+      toast({
+        title: "Erro ao excluir clínica",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+      setIsDeleteDialogOpen(false);
+      setSelectedClinic(null);
+    }
+  };
+
+  const handleClinicFormClose = () => {
+    setIsClinicFormOpen(false);
+  };
+
+  const handleClinicFormSuccess = () => {
+    setIsClinicFormOpen(false);
+    fetchClinics();
+  };
+
+  const handleEditSuccess = () => {
+    setIsEditing(false);
+    setSelectedClinic(null);
+    fetchClinics();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'list' | 'add' | 'edit')}>
-        <TabsList>
-          <TabsTrigger value="list" className="flex items-center gap-2">
-            <Eye size={16} />
-            Listar Clínicas
-          </TabsTrigger>
-          <TabsTrigger value="add" className="flex items-center gap-2">
-            <Plus size={16} />
-            Adicionar Clínica
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="list">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Minhas Clínicas</h2>
-              <Button 
-                variant="outline" 
-                onClick={refreshClinics}
-                disabled={isLoading}
-              >
-                Atualizar
-              </Button>
-            </div>
-            
-            {companyClinics.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Imagem</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Localização</TableHead>
-                    <TableHead>Visualizações</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {companyClinics.map(clinic => (
-                    <TableRow key={clinic.id}>
-                      <TableCell>
-                        <img 
-                          src={clinic.image} 
-                          alt={clinic.name}
-                          className="w-16 h-16 object-cover rounded"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = `https://via.placeholder.com/300x200?text=Clínica`;
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>{clinic.name}</TableCell>
-                      <TableCell>{clinic.category}</TableCell>
-                      <TableCell>{clinic.location}</TableCell>
-                      <TableCell>{clinic.views}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleEditClick(clinic)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleDeleteClinic(clinic.id)}
-                            disabled={isLoading}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                          <Link to={`/clinica/${clinic.id}`}>
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="text-center py-8 border rounded-lg">
-                <p className="text-gray-500">Nenhuma clínica encontrada.</p>
-                <Button 
-                  variant="link" 
-                  onClick={() => setActiveTab('add')}
-                >
-                  Adicionar sua primeira clínica
-                </Button>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Suas Clínicas</h2>
+        <Button 
+          variant="default" 
+          className="bg-pet-purple hover:bg-pet-lightPurple"
+          onClick={() => setIsClinicFormOpen(true)}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Adicionar Clínica
+        </Button>
+      </div>
+
+      {clinics.length === 0 ? (
+        <Card className="text-center py-12">
+          <CardContent>
+            <AlertCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium mb-2">Nenhuma clínica cadastrada</h3>
+            <p className="text-muted-foreground mb-6">Adicione sua primeira clínica para começar a atender.</p>
+            <Button 
+              variant="default" 
+              className="bg-pet-purple hover:bg-pet-lightPurple"
+              onClick={() => setIsClinicFormOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Adicionar Clínica
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {clinics.map((clinic) => (
+            <Card key={clinic.id} className="overflow-hidden">
+              <div className="relative h-48 bg-gray-200">
+                <img
+                  src={clinic.image}
+                  alt={clinic.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = `https://via.placeholder.com/300x200?text=Clínica`;
+                  }}
+                />
+                <div className="absolute top-0 left-0 right-0 p-4">
+                  <div className="flex justify-end space-x-1">
+                    <Button 
+                      size="icon" 
+                      variant="outline" 
+                      className="bg-white hover:bg-gray-100 h-8 w-8"
+                      onClick={() => {
+                        setSelectedClinic(clinic.id);
+                        setIsEditing(true);
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="outline" 
+                      className="bg-white hover:bg-red-100 text-red-500 hover:text-red-600 h-8 w-8"
+                      onClick={() => {
+                        setSelectedClinic(clinic.id);
+                        setIsDeleteDialogOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="add">
-          <EmpresaClinicForm 
-            onSubmitSuccess={() => setActiveTab('list')}
-          />
-        </TabsContent>
-        
-        <TabsContent value="edit">
+              <CardContent className="p-4">
+                <h3 className="font-semibold text-lg">{clinic.name}</h3>
+                <p className="text-sm text-gray-500">{clinic.category}</p>
+                <p className="text-sm text-gray-500">{clinic.location}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Form modal for adding a new clinic */}
+      <Dialog open={isClinicFormOpen} onOpenChange={setIsClinicFormOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Adicionar Nova Clínica</DialogTitle>
+          </DialogHeader>
+          {/* Placeholder for EmpresaClinicForm component */}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Clínica</DialogTitle>
+          </DialogHeader>
           {selectedClinic && (
-            <ClinicEditForm 
-              clinicId={selectedClinic.id}
-              onCancel={handleCancelEdit}
-              onSuccess={() => handleEditComplete(selectedClinic)}
+            <ClinicEditForm
+              clinicId={selectedClinic}
+              onCancel={() => setIsEditing(false)}
+              onSuccess={handleEditSuccess}
             />
           )}
-        </TabsContent>
-      </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A clínica será removida permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteClinic}
+              disabled={isSubmitting}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Sim, excluir'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

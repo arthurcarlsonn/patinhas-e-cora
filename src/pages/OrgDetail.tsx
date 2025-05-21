@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import EventList from '@/components/EventList';
-import PetList from '@/components/PetList';
 import { Loader2, MapPin, Mail, Phone, Globe, Share2, Facebook, Instagram } from 'lucide-react';
 import { shareContent } from '@/utils/shareUtils';
 import { Separator } from '@/components/ui/separator';
@@ -126,11 +125,11 @@ const OrgDetail = () => {
   const handleShare = () => {
     try {
       if (organization) {
-        shareContent({
-          title: `Conheça ${organization.name}`,
-          text: `Veja mais sobre ${organization.name}, uma organização de proteção animal em ${organization.location}`,
-          url: window.location.href
-        });
+        shareContent(
+          `Conheça ${organization.name}`,
+          `Veja mais sobre ${organization.name}, uma organização de proteção animal em ${organization.location}`,
+          window.location.href
+        );
       }
     } catch (error) {
       console.error('Erro ao compartilhar:', error);
@@ -359,11 +358,11 @@ const OrgDetail = () => {
           </div>
         </div>
 
-        {/* Seção de pets para adoção */}
+        {/* Seção de events dessa ONG */}
         <div className="mt-12">
           <EventList 
             title="Eventos desta ONG" 
-            viewAllLink="/ver-eventos" 
+            viewAllLink="/eventos" 
             limit={4}
             organizationId={organization.id} 
           />

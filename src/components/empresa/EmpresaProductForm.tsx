@@ -1,370 +1,334 @@
 
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, MapPin, DollarSign } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import MediaUpload from '@/components/MediaUpload';
-import ProductCard, { ProductCardProps } from '@/components/ProductCard';
 import { uploadMultipleImages } from '@/utils/uploadUtils';
 
-type Company = {
-  id: string;
-  name: string;
-}
-
 interface EmpresaProductFormProps {
-  onSuccess?: () => void;
-  onSubmitComplete?: () => void;
+  onSuccess: () => void;
 }
 
-const EmpresaProductForm = ({ onSuccess, onSubmitComplete }: EmpresaProductFormProps) => {
+interface Company {
+  id: string;
+  company_name: string;
+  email?: string;
+}
+
+const EmpresaProductForm = ({ onSuccess }: EmpresaProductFormProps) => {
   const { user } = useAuth();
-  const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
-  const [image, setImage] = useState<File[] | null>(null);
-  const [preview, setPreview] = useState<ProductCardProps | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [company, setCompany] = useState<Company | null>(null);
+  
   const [formData, setFormData] = useState({
     title: '',
-    price: '',
     description: '',
-    location: '',
     category: '',
-    home_delivery: false
+    price: '',
+    location: '',
+    contact: '',
+    website: '',
+    socialMedia: '',
+    homeDelivery: false
   });
-
+  
+  const [productImages, setProductImages] = useState<File[] | null>(null);
+  
   useEffect(() => {
-    if (!user) return;
-
-    const fetchUserCompanies = async () => {
+    const getUserCompany = async () => {
+      if (!user) return;
+      
       try {
-        // Fetch companies where the user is the owner
         const { data, error } = await supabase
           .from('companies')
-          .select('id, company_name')
-          .eq('id', user.id);
-
-        if (error) {
-          throw error;
-        }
-
-        if (data && data.length > 0) {
-          const formattedCompanies: Company[] = data.map(company => ({
-            id: company.id,
-            name: company.company_name
-          }));
-          setCompanies(formattedCompanies);
-          setSelectedCompanyId(formattedCompanies[0].id);
+          .select('id, company_name, email')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) throw error;
+        
+        if (data) {
+          setCompany(data);
         }
       } catch (error) {
-        console.error('Erro ao buscar empresas:', error);
-        toast.error('Não foi possível carregar suas empresas');
-      } finally {
-        setLoading(false);
+        console.error('Erro ao buscar empresa:', error);
+        toast.error('Não foi possível carregar os dados da empresa');
       }
     };
-
-    fetchUserCompanies();
+    
+    getUserCompany();
   }, [user]);
-
+  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
-    
-    // Update preview
-    updatePreview({ [id]: value });
-  };
-
-  const handleSwitchChange = (checked: boolean) => {
-    setFormData(prev => ({ ...prev, home_delivery: checked }));
   };
   
-  const updatePreview = (newData: Partial<typeof formData>) => {
-    const updatedData = { ...formData, ...newData };
-    
-    setPreview({
-      id: 'preview',
-      title: updatedData.title || 'Título do Produto',
-      price: parseFloat(updatedData.price) || 0,
-      image: image && image.length > 0 
-        ? URL.createObjectURL(image[0]) 
-        : 'https://via.placeholder.com/300x200?text=Imagem+do+Produto',
-      category: updatedData.category || 'Categoria',
-      location: updatedData.location || 'Localização',
-      views: 0
-    });
+  const handleSwitchChange = (checked: boolean) => {
+    setFormData(prev => ({ ...prev, homeDelivery: checked }));
   };
-
+  
+  const handleSelectChange = (value: string) => {
+    setFormData(prev => ({ ...prev, category: value }));
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user || !selectedCompanyId) {
-      toast.error("Você precisa selecionar uma empresa para adicionar um produto");
+    if (!user) {
+      toast.error('Você precisa estar logado para cadastrar um produto');
       return;
     }
-
-    setSaving(true);
+    
+    if (!company) {
+      toast.error('Não foi possível identificar sua empresa');
+      return;
+    }
+    
+    setLoading(true);
     
     try {
-      // Upload da imagem
-      let imageUrl = null;
-      if (image && image.length > 0) {
-        const urls = await uploadMultipleImages(image);
-        if (urls.length > 0) {
-          imageUrl = urls[0];
+      // Upload images
+      let mainImageUrl = null;
+      let additionalImageUrls: string[] = [];
+      
+      if (productImages && productImages.length > 0) {
+        const uploadedUrls = await uploadMultipleImages(productImages);
+        
+        if (uploadedUrls.length > 0) {
+          mainImageUrl = uploadedUrls[0];
+          if (uploadedUrls.length > 1) {
+            additionalImageUrls = uploadedUrls.slice(1);
+          }
         }
       }
-
-      // Inserir produto no banco de dados
-      const { error } = await supabase
+      
+      // Process social media
+      const socialMediaObj: Record<string, string> = {};
+      if (formData.socialMedia) {
+        formData.socialMedia.split(',').forEach(item => {
+          const [platform, handle] = item.split(':').map(s => s.trim());
+          if (platform && handle) {
+            socialMediaObj[platform.toLowerCase()] = handle;
+          }
+        });
+      }
+      
+      // Insert product
+      const { data: insertedProduct, error } = await supabase
         .from('products')
         .insert({
           title: formData.title,
           description: formData.description,
+          category: formData.category,
           price: parseFloat(formData.price),
           location: formData.location,
-          category: formData.category,
-          home_delivery: formData.home_delivery,
-          company_id: selectedCompanyId,
-          main_image_url: imageUrl
-        });
-
+          contact: formData.contact,
+          website: formData.website || null,
+          social_media: Object.keys(socialMediaObj).length > 0 ? socialMediaObj : null,
+          home_delivery: formData.homeDelivery,
+          main_image_url: mainImageUrl,
+          user_id: user.id,
+        })
+        .select()
+        .single();
+      
       if (error) throw error;
-
-      toast.success("Seu produto foi adicionado com sucesso!");
-
-      // Limpar formulário
+      
+      // Add additional images if any
+      if (additionalImageUrls.length > 0 && insertedProduct) {
+        const productImagesData = additionalImageUrls.map(url => ({
+          product_id: insertedProduct.id,
+          image_url: url
+        }));
+        
+        const { error: imagesError } = await supabase
+          .from('product_images')
+          .insert(productImagesData);
+        
+        if (imagesError) {
+          console.error('Erro ao adicionar imagens adicionais:', imagesError);
+        }
+      }
+      
+      toast.success('Produto cadastrado com sucesso!');
+      
+      // Reset form
       setFormData({
         title: '',
-        price: '',
         description: '',
-        location: '',
         category: '',
-        home_delivery: false
+        price: '',
+        location: '',
+        contact: '',
+        website: '',
+        socialMedia: '',
+        homeDelivery: false
       });
-      setImage(null);
-      setPreview(null);
+      setProductImages(null);
       
-      // Callback de sucesso
-      if (onSuccess) onSuccess();
-      if (onSubmitComplete) onSubmitComplete();
+      // Notify parent component
+      onSuccess();
       
     } catch (error: any) {
       console.error('Erro ao cadastrar produto:', error);
-      toast.error(error.message || "Não foi possível adicionar seu produto. Tente novamente.");
+      toast.error(error.message || 'Erro ao cadastrar produto. Tente novamente.');
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
-
-  if (loading) {
-    return (
-      <Card className="p-6">
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-pet-purple" />
-        </div>
-      </Card>
-    );
-  }
-
-  if (companies.length === 0) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center py-8">
-            <h2 className="text-xl font-bold text-gray-700 mb-4">Nenhuma empresa cadastrada</h2>
-            <p className="text-gray-600 mb-6">
-              Você precisa cadastrar uma empresa antes de adicionar produtos.
-            </p>
-            <Button
-              onClick={() => window.location.href = '/empresas'}
-              className="bg-pet-purple hover:bg-pet-lightPurple"
-            >
-              Cadastrar minha empresa
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+  
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Formulário */}
-      <Card>
-        <CardContent className="pt-6">
-          <h2 className="text-2xl font-bold mb-6 text-pet-darkPurple">Adicionar Produto</h2>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {companies.length > 1 && (
-              <div>
-                <Label htmlFor="company_id">Empresa</Label>
-                <Select
-                  value={selectedCompanyId}
-                  onValueChange={setSelectedCompanyId}
-                >
-                  <SelectTrigger id="company_id">
-                    <SelectValue placeholder="Selecione a empresa" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {companies.map(company => (
-                      <SelectItem key={company.id} value={company.id}>
-                        {company.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            
-            <div>
-              <Label htmlFor="title">Nome do produto</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                placeholder="Digite o nome do produto"
-                required
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="price">Preço</Label>
-              <div className="relative">
-                <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="pl-8"
-                  value={formData.price}
-                  onChange={handleInputChange}
-                  placeholder="0.00"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="category">Categoria</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) => {
-                  setFormData(prev => ({ ...prev, category: value }));
-                  updatePreview({ category: value });
-                }}
-                required
-              >
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="Selecione a categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="alimentos">Alimentos</SelectItem>
-                  <SelectItem value="brinquedos">Brinquedos</SelectItem>
-                  <SelectItem value="acessorios">Acessórios</SelectItem>
-                  <SelectItem value="higiene">Higiene</SelectItem>
-                  <SelectItem value="saude">Saúde e Bem-estar</SelectItem>
-                  <SelectItem value="camas">Camas e Casinhas</SelectItem>
-                  <SelectItem value="transporte">Transporte</SelectItem>
-                  <SelectItem value="outros">Outros</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="location">Localização</Label>
-              <div className="relative">
-                <MapPin className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-                <Input
-                  id="location"
-                  className="pl-8"
-                  placeholder="Cidade/Estado"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="home_delivery"
-                checked={formData.home_delivery}
-                onCheckedChange={handleSwitchChange}
-              />
-              <Label htmlFor="home_delivery" className="cursor-pointer">Entrega a domicílio</Label>
-            </div>
-            
-            <div>
-              <Label htmlFor="description">Descrição do produto</Label>
-              <Textarea
-                id="description"
-                rows={5}
-                value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Descreva detalhes importantes sobre o produto"
-                required
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="image">Imagem do Produto</Label>
-              <MediaUpload 
-                id="product-image"
-                label="Selecione uma imagem para o produto"
-                accept="image/*"
-                multiple={false}
-                onChange={setImage}
-                value={image}
-                required={false}
-              />
-            </div>
-            
-            <Button
-              type="submit"
-              className="bg-pet-purple hover:bg-pet-lightPurple"
-              disabled={saving}
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...
-                </>
-              ) : (
-                'Adicionar Produto'
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+    <form onSubmit={handleSubmit} className="space-y-6 p-6">
+      <div>
+        <Label htmlFor="category">Categoria</Label>
+        <Select 
+          value={formData.category} 
+          onValueChange={handleSelectChange}
+          required
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione a categoria" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="alimentacao">Alimentação</SelectItem>
+            <SelectItem value="acessorios">Acessórios</SelectItem>
+            <SelectItem value="brinquedos">Brinquedos</SelectItem>
+            <SelectItem value="higiene">Higiene e Limpeza</SelectItem>
+            <SelectItem value="medicamentos">Medicamentos</SelectItem>
+            <SelectItem value="servicos">Serviços Pet</SelectItem>
+            <SelectItem value="outros">Outros</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       
-      {/* Preview */}
-      {preview && (
-        <div className="flex flex-col">
-          <h2 className="text-xl font-semibold mb-4">Prévia do Produto</h2>
-          <div className="max-w-sm mx-auto">
-            <ProductCard
-              id={preview.id}
-              title={preview.title}
-              image={preview.image}
-              price={preview.price}
-              location={preview.location}
-              category={preview.category}
-              views={0}
-            />
-          </div>
-        </div>
-      )}
-    </div>
+      <div>
+        <Label htmlFor="title">Nome do Produto/Serviço</Label>
+        <Input 
+          id="title" 
+          placeholder="Ex: Ração Premium para Cães Adultos" 
+          value={formData.title}
+          onChange={handleInputChange}
+          required 
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="description">Descrição</Label>
+        <Textarea 
+          id="description" 
+          placeholder="Descreva o produto em detalhes" 
+          rows={4}
+          value={formData.description}
+          onChange={handleInputChange}
+          required 
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="price">Preço (R$)</Label>
+        <Input 
+          id="price" 
+          type="number" 
+          step="0.01" 
+          min="0" 
+          placeholder="0,00" 
+          value={formData.price}
+          onChange={handleInputChange}
+          required 
+        />
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <Switch 
+          id="homeDelivery" 
+          checked={formData.homeDelivery}
+          onCheckedChange={handleSwitchChange}
+        />
+        <Label htmlFor="homeDelivery">Entrega a domicílio?</Label>
+      </div>
+      
+      <div>
+        <Label htmlFor="productImage">Imagens do Produto</Label>
+        <MediaUpload
+          id="productImage"
+          label="Selecione até 5 imagens"
+          accept="image/*"
+          multiple={true}
+          onChange={setProductImages}
+          value={productImages}
+          maxFiles={5}
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="contact">Contatos</Label>
+        <Input 
+          id="contact" 
+          placeholder="Telefone, WhatsApp, etc." 
+          value={formData.contact}
+          onChange={handleInputChange}
+          required 
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="socialMedia">Redes Sociais (opcional)</Label>
+        <Input 
+          id="socialMedia" 
+          placeholder="Instagram: @exemplo, Facebook: /exemplo" 
+          value={formData.socialMedia}
+          onChange={handleInputChange}
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Formato: plataforma: nome, separados por vírgula
+        </p>
+      </div>
+      
+      <div>
+        <Label htmlFor="website">Site (opcional)</Label>
+        <Input 
+          id="website" 
+          placeholder="www.seusite.com.br" 
+          value={formData.website}
+          onChange={handleInputChange}
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="location">Localização</Label>
+        <Input 
+          id="location" 
+          placeholder="Cidade, Estado" 
+          value={formData.location}
+          onChange={handleInputChange}
+          required 
+        />
+      </div>
+      
+      <Button 
+        type="submit" 
+        className="w-full bg-pet-purple hover:bg-pet-lightPurple" 
+        disabled={loading}
+      >
+        {loading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Cadastrando...
+          </>
+        ) : (
+          'Cadastrar Produto'
+        )}
+      </Button>
+    </form>
   );
 };
 

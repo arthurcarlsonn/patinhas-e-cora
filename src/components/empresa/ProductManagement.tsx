@@ -1,30 +1,19 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
-import ProductCard, { ProductCardProps } from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Loader2, Plus, Edit, Trash2, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-
-// Import ProductEditForm component, but this component doesn't seem to be provided yet
 import ProductEditForm from './ProductEditForm';
+import { ProductCardProps } from '@/components/ProductCard';
 
 interface ProductManagementProps {
   companyId: string;
 }
-
-type Product = {
-  id: string;
-  title: string;
-  price: number;
-  category: string;
-  location: string;
-  main_image_url: string;
-  views: number;
-};
 
 const ProductManagement = ({ companyId }: ProductManagementProps) => {
   const { user } = useAuth();
@@ -168,7 +157,33 @@ const ProductManagement = ({ companyId }: ProductManagementProps) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {products.map((product) => (
             <div key={product.id} className="relative group">
-              <ProductCard {...product} />
+              <div className="rounded-lg overflow-hidden border border-gray-200">
+                <div className="relative h-48">
+                  <img
+                    src={product.image}
+                    alt={product.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = `https://via.placeholder.com/300x200?text=Produto`;
+                    }}
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                    <p className="text-white font-bold">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="p-4">
+                  <h3 className="font-medium text-lg line-clamp-2">{product.title}</h3>
+                  <div className="flex items-center text-sm text-gray-500 mt-1">
+                    <MapPin size={14} className="mr-1" />
+                    <span>{product.location}</span>
+                  </div>
+                </div>
+              </div>
+              
               <div className="absolute top-2 right-2 space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button 
                   size="icon" 
