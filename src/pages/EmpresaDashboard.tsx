@@ -8,8 +8,8 @@ import Footer from '@/components/Footer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Package, Store, Settings, LogOut, Building } from 'lucide-react';
-import EmpresaProductForm from '@/components/empresa/EmpresaProductForm';
-import EmpresaClinicForm from '@/components/empresa/EmpresaClinicForm';
+import ProductManagement from '@/components/empresa/ProductManagement';
+import ClinicManagement from '@/components/empresa/ClinicManagement';
 import EmpresaProfile from '@/components/empresa/EmpresaProfile';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProductCardProps } from '@/components/ProductCard';
@@ -240,14 +240,14 @@ const EmpresaDashboard = () => {
               </TabsList>
               
               <TabsContent value="produtos">
-                <EmpresaProductForm 
+                <ProductManagement 
                   companyProducts={companyProducts}
                   setCompanyProducts={setCompanyProducts}
                 />
               </TabsContent>
               
               <TabsContent value="clinicas">
-                <EmpresaClinicForm 
+                <ClinicManagement 
                   companyClinics={companyClinics}
                   setCompanyClinics={setCompanyClinics}
                 />

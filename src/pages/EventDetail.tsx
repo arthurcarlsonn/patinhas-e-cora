@@ -1,18 +1,17 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { supabase } from '@/integrations/supabase/client';
-import { IncrementViewsParams } from '@/integrations/supabase/types-extended';
-import EventLoading from '@/components/event-detail/EventLoading';
-import EventNotFound from '@/components/event-detail/EventNotFound';
 import EventHeader from '@/components/event-detail/EventHeader';
 import EventInfo from '@/components/event-detail/EventInfo';
 import EventDescription from '@/components/event-detail/EventDescription';
 import EventActions from '@/components/event-detail/EventActions';
+import EventNotFound from '@/components/event-detail/EventNotFound';
+import EventLoading from '@/components/event-detail/EventLoading';
 
-interface Event {
+interface EventDetail {
   id: string;
   title: string;
   date: string;
@@ -20,111 +19,117 @@ interface Event {
   description: string;
   category: string;
   main_image_url?: string;
-  organization_id: string;
   views: number;
-  organization?: {
-    name: string;
+  organization: {
     id: string;
+    name: string;
   };
 }
 
 const EventDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [event, setEvent] = useState<Event | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [event, setEvent] = useState<EventDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
-
-    const fetchEventData = async () => {
-      setLoading(true);
+    const fetchEventDetail = async () => {
+      if (!id) return;
+      
       try {
-        // Increment views with proper typing
-        const incrementParams: IncrementViewsParams = {
-          table_name: 'events',
-          row_id: id
-        };
-        
-        const incrementResult = await supabase.rpc(
-          'increment_views',
-          incrementParams
-        );
-        
-        if (incrementResult.error) {
-          console.error("Erro ao incrementar visualizações:", incrementResult.error);
-        }
-
-        // Buscar dados do evento
         const { data, error } = await supabase
           .from('events')
           .select(`
             *,
             organization:organization_id (
-              id,
-              name
+              id, name
             )
           `)
           .eq('id', id)
           .single();
 
-        if (error) {
-          console.error('Erro ao buscar evento:', error);
+        if (error || !data) {
+          setNotFound(true);
           throw error;
         }
 
-        if (data) {
-          setEvent(data);
+        setEvent({
+          id: data.id,
+          title: data.title,
+          date: data.date,
+          location: data.location,
+          description: data.description,
+          category: data.category,
+          main_image_url: data.main_image_url,
+          views: data.views || 0,
+          organization: {
+            id: data.organization.id,
+            name: data.organization.name,
+          }
+        });
+
+        // Increment view count
+        if (id) {
+          try {
+            await supabase.rpc('increment_views', { 
+              table_name: 'events',
+              row_id: id 
+            });
+          } catch (error) {
+            console.error('Error incrementing views:', error);
+          }
         }
+
       } catch (error) {
-        console.error('Erro:', error);
+        console.error('Error fetching event details:', error);
+        if (!notFound) {
+          setNotFound(true);
+        }
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    fetchEventData();
-  }, [id]);
+    fetchEventDetail();
+  }, [id, notFound]);
 
-  if (loading) {
-    return <EventLoading />;
+  if (isLoading) {
+    return (
+      <>
+        <Header />
+        <EventLoading />
+        <Footer />
+      </>
+    );
   }
 
-  if (!event) {
-    return <EventNotFound />;
+  if (notFound || !event) {
+    return (
+      <>
+        <Header />
+        <EventNotFound />
+        <Footer />
+      </>
+    );
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <>
       <Header />
-      <main className="flex-grow py-8">
-        <div className="container mx-auto px-4">
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <EventHeader 
-              title={event.title}
-              category={event.category}
-              imageUrl={event.main_image_url}
-              organization={event.organization}
-            />
-            
-            <div className="p-6 pt-0">
-              <EventInfo 
-                date={event.date}
-                location={event.location}
-              />
-              
-              <EventDescription description={event.description} />
-              
-              <EventActions 
-                eventTitle={event.title}
-                eventLocation={event.location}
-                organization={event.organization}
-              />
-            </div>
+      <main className="container mx-auto px-4 py-8">
+        <EventHeader event={event} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+          <div className="md:col-span-2">
+            <EventDescription description={event.description} />
+          </div>
+          <div className="space-y-6">
+            <EventInfo event={event} />
+            <EventActions event={event} />
           </div>
         </div>
       </main>
       <Footer />
-    </div>
+    </>
   );
 };
 
