@@ -1,124 +1,65 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { ProductCardProps } from '@/components/ProductCard';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent } from '@/components/ui/card';
+import ProductCard, { ProductCardProps } from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Pencil, Trash, Eye, Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import EmpresaProductForm from './EmpresaProductForm';
+import { Loader2, Plus, Edit, Trash2, AlertCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
+// Import ProductEditForm component, but this component doesn't seem to be provided yet
 import ProductEditForm from './ProductEditForm';
 
 interface ProductManagementProps {
-  companyProducts: ProductCardProps[];
-  setCompanyProducts: (products: ProductCardProps[]) => void;
+  companyId: string;
 }
 
-const ProductManagement = ({ companyProducts, setCompanyProducts }: ProductManagementProps) => {
+const ProductManagement = ({ companyId }: ProductManagementProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'list' | 'add' | 'edit'>('list');
+  
+  const [products, setProducts] = useState<ProductCardProps[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<ProductCardProps | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleDeleteProduct = async (productId: string) => {
-    if (!confirm("Tem certeza que deseja excluir este produto?")) return;
-    
-    setIsLoading(true);
-    try {
-      // First delete related product images
-      const { error: imagesError } = await supabase
-        .from('product_images')
-        .delete()
-        .eq('product_id', productId);
-      
-      if (imagesError) throw imagesError;
-      
-      // Then delete the product
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', productId);
-      
-      if (error) throw error;
-      
-      // Update state to remove the deleted product
-      setCompanyProducts(companyProducts.filter(product => product.id !== productId));
-      
-      toast({
-        title: "Produto excluído",
-        description: "O produto foi excluído com sucesso.",
-      });
-    } catch (error) {
-      console.error('Erro ao excluir produto:', error);
-      toast({
-        title: "Erro ao excluir",
-        description: "Não foi possível excluir o produto. Tente novamente.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  useEffect(() => {
+    fetchProducts();
+  }, [companyId]);
 
-  const handleEditClick = (product: ProductCardProps) => {
-    setSelectedProduct(product);
-    setActiveTab('edit');
-  };
-
-  const handleEditComplete = (updatedProduct: ProductCardProps) => {
-    setCompanyProducts(
-      companyProducts.map(p => p.id === updatedProduct.id ? updatedProduct : p)
-    );
-    setActiveTab('list');
-    setSelectedProduct(null);
-  };
-
-  const handleCancelEdit = () => {
-    setActiveTab('list');
-    setSelectedProduct(null);
-  };
-
-  const refreshProducts = async () => {
-    if (!user) return;
-    
+  const fetchProducts = async () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('user_id', user.id);
-        
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
-      
+
       if (data) {
-        // Convert database data to ProductCardProps format
         const formattedProducts: ProductCardProps[] = data.map(product => ({
           id: product.id,
           title: product.title,
-          image: product.main_image_url || `https://via.placeholder.com/300x200?text=Produto`,
-          price: Number(product.price),
-          category: product.category,
+          image: product.main_image_url || '/placeholder.svg',
+          price: product.price,
           location: product.location,
-          views: product.views || 0,
-          business: {
-            id: product.user_id,
-            name: 'Empresa',
-            verified: true
-          },
-          homeDelivery: product.home_delivery || false
+          category: product.category
         }));
         
-        setCompanyProducts(formattedProducts);
+        setProducts(formattedProducts);
       }
-    } catch (error) {
-      console.error('Erro ao carregar produtos:', error);
+    } catch (error: any) {
+      console.error('Error fetching products:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível carregar os produtos.",
+        title: "Erro ao carregar produtos",
+        description: error.message,
         variant: "destructive"
       });
     } finally {
@@ -126,128 +67,171 @@ const ProductManagement = ({ companyProducts, setCompanyProducts }: ProductManag
     }
   };
 
+  const handleDeleteProduct = async () => {
+    if (!selectedProduct) return;
+    
+    setIsSubmitting(true);
+    try {
+      // Delete product images first
+      const { error: imagesError } = await supabase
+        .from('product_images')
+        .delete()
+        .eq('product_id', selectedProduct.id);
+
+      if (imagesError) throw imagesError;
+
+      // Then delete the product
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', selectedProduct.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setProducts(products.filter(p => p.id !== selectedProduct.id));
+      
+      toast({
+        title: "Produto excluído",
+        description: "O produto foi excluído com sucesso."
+      });
+      
+    } catch (error: any) {
+      console.error('Error deleting product:', error);
+      toast({
+        title: "Erro ao excluir produto",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+      setIsDeleteDialogOpen(false);
+      setSelectedProduct(null);
+    }
+  };
+
+  const handleProductUpdate = (updatedProduct: ProductCardProps) => {
+    setProducts(prevProducts => 
+      prevProducts.map(p => 
+        p.id === updatedProduct.id ? updatedProduct : p
+      )
+    );
+    setIsEditing(false);
+    setSelectedProduct(null);
+  };
+
+  const handleSubmitSuccess = () => {
+    fetchProducts();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'list' | 'add' | 'edit')}>
-        <TabsList>
-          <TabsTrigger value="list" className="flex items-center gap-2">
-            <Eye size={16} />
-            Listar Produtos
-          </TabsTrigger>
-          <TabsTrigger value="add" className="flex items-center gap-2">
-            <Plus size={16} />
-            Adicionar Produto
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="list">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Meus Produtos</h2>
-              <Button 
-                variant="outline" 
-                onClick={refreshProducts}
-                disabled={isLoading}
-              >
-                Atualizar
-              </Button>
-            </div>
-            
-            {companyProducts.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Imagem</TableHead>
-                    <TableHead>Título</TableHead>
-                    <TableHead>Preço</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Visualizações</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {companyProducts.map(product => (
-                    <TableRow key={product.id}>
-                      <TableCell>
-                        <img 
-                          src={product.image} 
-                          alt={product.title}
-                          className="w-16 h-16 object-cover rounded"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = `https://via.placeholder.com/300x200?text=Produto`;
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>{product.title}</TableCell>
-                      <TableCell>
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL'
-                        }).format(product.price)}
-                      </TableCell>
-                      <TableCell>{product.category}</TableCell>
-                      <TableCell>{product.views}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleEditClick(product)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleDeleteProduct(product.id)}
-                            disabled={isLoading}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                          <Link to={`/produto/${product.id}`}>
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="text-center py-8 border rounded-lg">
-                <p className="text-gray-500">Nenhum produto encontrado.</p>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Seus Produtos</h2>
+        {/* ProductForm component is not provided yet */}
+      </div>
+
+      {products.length === 0 ? (
+        <Card className="text-center py-12">
+          <CardContent>
+            <AlertCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium mb-2">Nenhum produto cadastrado</h3>
+            <p className="text-muted-foreground mb-6">Adicione seu primeiro produto para começar a vender.</p>
+            <Button 
+              variant="default" 
+              className="bg-pet-purple hover:bg-pet-lightPurple"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Adicionar Produto
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {products.map((product) => (
+            <div key={product.id} className="relative group">
+              <ProductCard {...product} />
+              <div className="absolute top-2 right-2 space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button 
-                  variant="link" 
-                  onClick={() => setActiveTab('add')}
+                  size="icon" 
+                  variant="outline" 
+                  className="bg-white hover:bg-gray-100 h-8 w-8"
+                  onClick={() => {
+                    setSelectedProduct(product);
+                    setIsEditing(true);
+                  }}
                 >
-                  Adicionar seu primeiro produto
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button 
+                  size="icon" 
+                  variant="outline" 
+                  className="bg-white hover:bg-red-100 text-red-500 hover:text-red-600 h-8 w-8"
+                  onClick={() => {
+                    setSelectedProduct(product);
+                    setIsDeleteDialogOpen(true);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-            )}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="add">
-          <EmpresaProductForm 
-            companyProducts={companyProducts}
-            setCompanyProducts={setCompanyProducts}
-            onSubmitSuccess={() => setActiveTab('list')}
-          />
-        </TabsContent>
-        
-        <TabsContent value="edit">
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Produto</DialogTitle>
+          </DialogHeader>
           {selectedProduct && (
-            <ProductEditForm 
+            <ProductEditForm
               product={selectedProduct}
-              onCancel={handleCancelEdit}
-              onUpdate={handleEditComplete}
+              onCancel={() => setIsEditing(false)}
+              onUpdate={handleProductUpdate}
             />
           )}
-        </TabsContent>
-      </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O produto será removido permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteProduct}
+              disabled={isSubmitting}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Sim, excluir'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

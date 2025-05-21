@@ -37,7 +37,7 @@ const ProductEditForm = ({ product, onCancel, onUpdate }: ProductEditFormProps) 
     homeDelivery: false
   });
   
-  const [images, setImages] = useState<FileList | null>(null);
+  const [images, setImages] = useState<File[] | null>(null);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   
   // Load the full product data
@@ -207,7 +207,7 @@ const ProductEditForm = ({ product, onCancel, onUpdate }: ProductEditFormProps) 
       
       toast({
         title: "Produto atualizado",
-        description: "O produto foi atualizado com sucesso.",
+        description: "O produto foi atualizado com sucesso."
       });
       
       // Call the parent component with updated data
@@ -308,15 +308,18 @@ const ProductEditForm = ({ product, onCancel, onUpdate }: ProductEditFormProps) 
         <Label htmlFor="homeDelivery">Entrega a domicílio?</Label>
       </div>
       
-      <MediaUpload
-        id="imagens"
-        label="Imagens do Produto"
-        accept="image/*"
-        multiple={true}
-        onChange={setImages}
-        value={images}
-        existingUrls={existingImages}
-      />
+      <div>
+        <Label htmlFor="image">Imagem Principal</Label>
+        <MediaUpload
+          id="image"
+          label="Selecione uma imagem"
+          accept="image/*"
+          multiple={true}
+          onChange={setImages}
+          value={images}
+          existingUrls={existingImages}
+        />
+      </div>
       
       <div>
         <Label htmlFor="contact">Contatos</Label>

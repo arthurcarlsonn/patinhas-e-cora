@@ -28,8 +28,10 @@ export const uploadImage = async (file: File): Promise<string | null> => {
   }
 };
 
-export const uploadMultipleImages = async (files: File[]): Promise<string[]> => {
-  const uploadPromises = files.map(file => uploadImage(file));
+export const uploadMultipleImages = async (files: File[] | FileList): Promise<string[]> => {
+  // Convert FileList to Array if needed
+  const fileArray = files instanceof FileList ? Array.from(files) : files;
+  const uploadPromises = fileArray.map(file => uploadImage(file));
   const results = await Promise.all(uploadPromises);
   return results.filter((url): url is string => url !== null);
 };

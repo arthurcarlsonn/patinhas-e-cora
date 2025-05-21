@@ -39,7 +39,7 @@ const AdocaoForm = ({ onSubmit: parentOnSubmit }: AdocaoFormProps) => {
     localizacao: ''
   });
 
-  const [images, setImages] = useState<FileList | null>(null);
+  const [images, setImages] = useState<File[] | null>(null);
   const [video, setVideo] = useState<File | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -359,7 +359,7 @@ const AdocaoForm = ({ onSubmit: parentOnSubmit }: AdocaoFormProps) => {
         accept="video/*"
         multiple={false}
         onChange={(files) => files && files.length > 0 ? setVideo(files[0]) : setVideo(null)}
-        value={video ? new DataTransfer().files : null}
+        value={video ? [video] : null}
       />
       
       <div>

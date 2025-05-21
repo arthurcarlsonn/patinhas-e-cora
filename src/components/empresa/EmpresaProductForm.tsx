@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -132,13 +133,15 @@ const EmpresaProductForm = () => {
       // Create product in database
       const { data: productData, error: productError } = await supabase
         .from('products')
-        .insert([
-          {
-            ...product,
-            company_id: company.id,
-            main_image_url: imageUrl
-          }
-        ])
+        .insert({
+          company_id: company.id,
+          title: product.title,
+          description: product.description,
+          price: product.price,
+          location: product.location,
+          category: product.category,
+          main_image_url: imageUrl
+        })
         .select()
         .single();
 
@@ -253,6 +256,7 @@ const EmpresaProductForm = () => {
                     setImage(null);
                   }
                 }}
+                value={image ? [image] : null}
               />
             </div>
             <Button disabled={isSaving} className="w-full bg-pet-purple hover:bg-pet-lightPurple">
@@ -281,11 +285,11 @@ const EmpresaProductForm = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {products.map((product) => (
               <ProductCard
+                key={product.id}
                 id={product.id}
                 title={product.title}
                 image={product.main_image_url || '/placeholder.svg'}
                 price={product.price}
-                companyName={company?.company_name || 'Empresa'}
                 location={product.location}
               />
             ))}

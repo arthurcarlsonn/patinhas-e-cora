@@ -1,357 +1,249 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, ArrowLeft } from 'lucide-react';
 import MediaUpload from '@/components/MediaUpload';
-import { uploadImage } from '@/utils/uploadUtils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { uploadMultipleImages } from '@/utils/uploadUtils';
 
-interface EventData {
+interface Event {
   id: string;
   title: string;
   description: string;
-  location: string;
   date: string;
+  location: string;
   category: string;
   main_image_url?: string;
   organization_id: string;
 }
 
-const OngEditEvent = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { user } = useAuth();
+interface OngEditEventProps {
+  event: Event;
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+const OngEditEvent = ({ event, onSuccess, onCancel }: OngEditEventProps) => {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  
-  const [eventData, setEventData] = useState<EventData>({
-    id: '',
-    title: '',
-    description: '',
-    location: '',
-    date: '',
-    category: '',
-    main_image_url: '',
-    organization_id: ''
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    title: event.title || '',
+    description: event.description || '',
+    location: event.location || '',
+    category: event.category || '',
   });
-  
-  const [image, setImage] = useState<File | null>(null);
-  const [userOrgs, setUserOrgs] = useState<{ id: string, name: string }[]>([]);
-  
-  // Format date string to datetime-local input format
-  const formatDateForInput = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toISOString().slice(0, 16);
-  };
+  const [date, setDate] = useState<Date | undefined>(
+    event.date ? new Date(event.date) : undefined
+  );
+  const [image, setImage] = useState<File[] | null>(null);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | undefined>(
+    event.main_image_url
+  );
 
-  // Format datetime-local input value to ISO string for database
-  const formatDateForDatabase = (dateString: string): string => {
-    return new Date(dateString).toISOString();
-  };
-
-  // Fetch user organizations
   useEffect(() => {
-    if (!user) return;
-    
-    const fetchUserOrgs = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('organizations')
-          .select('id, name')
-          .eq('user_id', user.id);
-        
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          setUserOrgs(data);
-        }
-      } catch (error) {
-        console.error('Error fetching user organizations:', error);
-      }
-    };
-    
-    fetchUserOrgs();
-  }, [user]);
+    setFormData({
+      title: event.title || '',
+      description: event.description || '',
+      location: event.location || '',
+      category: event.category || '',
+    });
+    setDate(event.date ? new Date(event.date) : undefined);
+    setCurrentImageUrl(event.main_image_url);
+  }, [event]);
 
-  // Fetch event data
-  useEffect(() => {
-    const fetchEventData = async () => {
-      if (!id || !user) return;
-      
-      try {
-        // Get user organizations first
-        const { data: orgs, error: orgsError } = await supabase
-          .from('organizations')
-          .select('id')
-          .eq('user_id', user.id);
-        
-        if (orgsError) throw orgsError;
-        
-        if (!orgs || orgs.length === 0) {
-          toast.error("Acesso negado. Você não possui uma organização cadastrada.");
-          navigate('/ong/dashboard');
-          return;
-        }
-        
-        const orgIds = orgs.map(o => o.id);
-        
-        // Get event data
-        const { data: event, error: eventError } = await supabase
-          .from('events')
-          .select('*')
-          .eq('id', id)
-          .in('organization_id', orgIds)
-          .single();
-          
-        if (eventError) {
-          if (eventError.code === 'PGRST116') {
-            toast.error("Evento não encontrado. O evento não existe ou você não tem permissão para editá-lo.");
-            navigate('/ong/dashboard');
-          }
-          throw eventError;
-        }
-        
-        if (!event) {
-          toast.error("Evento não encontrado. O evento não existe ou você não tem permissão para editá-lo.");
-          navigate('/ong/dashboard');
-          return;
-        }
-        
-        // Set event data
-        setEventData({
-          id: event.id,
-          title: event.title,
-          description: event.description,
-          location: event.location,
-          date: formatDateForInput(event.date),
-          category: event.category,
-          main_image_url: event.main_image_url,
-          organization_id: event.organization_id
-        });
-        
-      } catch (error) {
-        console.error('Error fetching event data:', error);
-        toast.error("Erro ao carregar dados do evento. Tente novamente mais tarde.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchEventData();
-  }, [id, user, navigate, toast]);
-  
-  // Handle form input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value } = e.target;
-    setEventData(prev => ({ ...prev, [id]: value }));
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
-  
-  const handleSelectChange = (field: string, value: string) => {
-    setEventData(prev => ({ ...prev, [field]: value }));
-  };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || !user) return;
-    
-    setIsSaving(true);
-    
+
+    if (!date) {
+      toast({
+        title: "Data obrigatória",
+        description: "Por favor, selecione uma data para o evento.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
-      let imageUrl = eventData.main_image_url;
-      
       // Upload new image if provided
-      if (image) {
-        const uploadedUrl = await uploadImage(image);
-        if (uploadedUrl) {
-          imageUrl = uploadedUrl;
+      let imageUrl = currentImageUrl;
+      if (image && image.length > 0) {
+        try {
+          const urls = await uploadMultipleImages(image);
+          if (urls.length > 0) {
+            imageUrl = urls[0];
+          }
+        } catch (err) {
+          console.error("Erro ao fazer upload da imagem:", err);
+          toast({
+            title: "Erro no upload",
+            description: "Não foi possível fazer upload da imagem. Tente novamente.",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
         }
       }
-      
-      // Update event data
-      const { error: updateError } = await supabase
+
+      // Update event in database
+      const { error } = await supabase
         .from('events')
         .update({
-          title: eventData.title,
-          description: eventData.description,
-          location: eventData.location,
-          date: formatDateForDatabase(eventData.date),
-          category: eventData.category,
+          title: formData.title,
+          description: formData.description,
+          date: date.toISOString(),
+          location: formData.location,
+          category: formData.category,
           main_image_url: imageUrl,
-          organization_id: eventData.organization_id
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', id);
-        
-      if (updateError) throw updateError;
-      
-      toast.success("Alterações salvas. Os dados do evento foram atualizados com sucesso.");
-      
-      // Redirect to organization dashboard
-      navigate('/ong/dashboard');
-    } catch (error) {
-      console.error('Error updating event:', error);
-      toast.error("Erro ao atualizar o evento. Tente novamente mais tarde.");
+        .eq('id', event.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Evento atualizado",
+        description: "As informações do evento foram atualizadas com sucesso.",
+      });
+
+      // Call parent's success handler
+      onSuccess();
+    } catch (error: any) {
+      console.error('Erro ao atualizar evento:', error);
+      toast({
+        title: "Erro ao atualizar",
+        description: error.message || "Não foi possível atualizar o evento. Tente novamente.",
+        variant: "destructive"
+      });
     } finally {
-      setIsSaving(false);
+      setIsLoading(false);
     }
   };
-  
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-pet-purple" />
-      </div>
-    );
-  }
-  
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Button 
-        onClick={() => navigate('/ong/dashboard')} 
-        variant="ghost" 
-        className="mb-4 flex items-center text-gray-600"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Voltar
-      </Button>
-      
-      <h1 className="text-3xl font-bold mb-6">Editar Evento</h1>
-      
-      <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow-sm">
-        <div>
-          <Label htmlFor="title">Título do Evento</Label>
-          <Input 
-            id="title" 
-            value={eventData.title} 
-            onChange={handleChange}
-            required
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="organization_id">Organização</Label>
-          <Select 
-            value={eventData.organization_id} 
-            onValueChange={(value) => handleSelectChange('organization_id', value)}
-            disabled={userOrgs.length <= 1}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione a organização" />
-            </SelectTrigger>
-            <SelectContent>
-              {userOrgs.map((org) => (
-                <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div>
-          <Label htmlFor="category">Categoria</Label>
-          <Select 
-            value={eventData.category} 
-            onValueChange={(value) => handleSelectChange('category', value)}
-            required
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione a categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="adocao">Adoção</SelectItem>
-              <SelectItem value="castracao">Castração</SelectItem>
-              <SelectItem value="feira">Feira</SelectItem>
-              <SelectItem value="vacinacao">Vacinação</SelectItem>
-              <SelectItem value="arrecadacao">Arrecadação</SelectItem>
-              <SelectItem value="educacao">Educação</SelectItem>
-              <SelectItem value="outro">Outro</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div>
-          <Label htmlFor="date">Data e Hora</Label>
-          <Input 
-            id="date" 
-            type="datetime-local" 
-            value={eventData.date} 
-            onChange={handleChange}
-            required
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="location">Localização</Label>
-          <Input 
-            id="location" 
-            value={eventData.location} 
-            onChange={handleChange}
-            required
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="description">Descrição</Label>
-          <Textarea 
-            id="description" 
-            rows={5} 
-            value={eventData.description} 
-            onChange={handleChange}
-            required
-          />
-        </div>
-        
-        {/* Current Image Preview */}
-        {eventData.main_image_url && (
-          <div>
-            <Label>Imagem Atual</Label>
-            <div className="mt-2 rounded-lg overflow-hidden border">
-              <img 
-                src={eventData.main_image_url} 
-                alt="Imagem do evento" 
-                className="w-full h-48 object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = "https://via.placeholder.com/800x400?text=Evento";
-                }}
-              />
-            </div>
-          </div>
-        )}
-        
-        {/* New Image Upload */}
-        <div>
-          <Label>Alterar Imagem</Label>
-          <MediaUpload
-            id="event-image"
-            label=""
-            accept="image/*"
-            multiple={false}
-            onChange={(files) => files && files.length > 0 ? setImage(files[0]) : setImage(null)}
-            value={image ? new FileList([image], '') : null}
-          />
-        </div>
-        
-        <div className="pt-4">
-          <Button 
-            type="submit" 
-            className="w-full bg-pet-purple hover:bg-pet-lightPurple"
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</>
-            ) : (
-              "Salvar alterações"
-            )}
-          </Button>
-        </div>
-      </form>
-    </div>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <Label htmlFor="title">Título do Evento</Label>
+        <Input
+          id="title"
+          name="title"
+          value={formData.title}
+          onChange={handleInputChange}
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="description">Descrição</Label>
+        <Textarea
+          id="description"
+          name="description"
+          value={formData.description}
+          onChange={handleInputChange}
+          rows={4}
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="date">Data do Evento</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !date && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {date ? format(date, "PPP", { locale: ptBR }) : <span>Selecione uma data</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <div>
+        <Label htmlFor="location">Localização</Label>
+        <Input
+          id="location"
+          name="location"
+          value={formData.location}
+          onChange={handleInputChange}
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="category">Categoria</Label>
+        <Input
+          id="category"
+          name="category"
+          value={formData.category}
+          onChange={handleInputChange}
+          required
+        />
+      </div>
+
+      <div>
+        <Label>Imagem do Evento</Label>
+        <MediaUpload
+          id="event-image"
+          label="Imagem do Evento"
+          accept="image/*"
+          multiple={false}
+          onChange={setImage}
+          value={image}
+          existingUrls={currentImageUrl ? [currentImageUrl] : []}
+        />
+      </div>
+
+      <div className="flex justify-end space-x-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Salvando...
+            </>
+          ) : (
+            "Salvar Alterações"
+          )}
+        </Button>
+      </div>
+    </form>
   );
 };
 

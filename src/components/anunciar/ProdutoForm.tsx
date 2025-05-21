@@ -33,7 +33,7 @@ const ProdutoForm = ({ onSubmit: parentOnSubmit }: ProdutoFormProps) => {
     localizacao: ''
   });
 
-  const [images, setImages] = useState<FileList | null>(null);
+  const [images, setImages] = useState<File[] | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;

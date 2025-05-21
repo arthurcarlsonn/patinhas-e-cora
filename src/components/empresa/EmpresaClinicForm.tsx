@@ -1,118 +1,98 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, X, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { ClinicCardProps } from '@/components/ClinicCard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 import MediaUpload from '@/components/MediaUpload';
 import { uploadMultipleImages } from '@/utils/uploadUtils';
 
-interface EmpresaClinicFormProps {
-  companyClinics: ClinicCardProps[];
-  setCompanyClinics: (clinics: ClinicCardProps[]) => void;
-  onSubmitSuccess?: () => void;
-}
-
-const EmpresaClinicForm = ({
-  companyClinics,
-  setCompanyClinics,
-  onSubmitSuccess
-}: EmpresaClinicFormProps) => {
-  const { toast } = useToast();
+const EmpresaClinicForm = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Adicionar todos os estados necessários
+  const [company, setCompany] = useState<{ id: string; company_name: string } | null>(null);
+  const [isLoadingCompany, setIsLoadingCompany] = useState(true);
+  
   const [formData, setFormData] = useState({
     name: '',
     category: '',
-    description: '',
-    address: '',
     location: '',
+    address: '',
     phone: '',
     email: '',
     whatsapp: '',
     website: '',
-    openHours: '',
-    socialMedia: '',
-    hasHomeService: false,
-    hasParking: false
+    description: '',
+    specialties: '',
+    services: '',
+    open_hours: '',
+    social_media: '',
+    has_parking: false,
+    has_home_service: false
   });
-
-  const [images, setImages] = useState<FileList | null>(null);
-  const [specialties, setSpecialties] = useState<string[]>([]);
-  const [newSpecialty, setNewSpecialty] = useState('');
-  const [services, setServices] = useState<string[]>([]);
-  const [newService, setNewService] = useState('');
-  const [veterinarians, setVeterinarians] = useState<Array<{name: string, specialty: string}>>([]);
-  const [newVeterinarian, setNewVeterinarian] = useState({name: '', specialty: ''});
-
+  
+  const [imageFile, setImageFile] = useState<File[] | null>(null);
+  
+  useEffect(() => {
+    if (!user) {
+      navigate('/entrar');
+      return;
+    }
+    
+    const fetchCompany = async () => {
+      setIsLoadingCompany(true);
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('id, company_name')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          setCompany(data);
+          // Pre-fill some form fields
+          setFormData(prev => ({
+            ...prev,
+            name: data.company_name || prev.name,
+          }));
+        }
+      } catch (error: any) {
+        console.error('Error fetching company data:', error);
+        toast({
+          title: "Erro ao carregar dados da empresa",
+          description: "Por favor, complete seu perfil de empresa antes de cadastrar clínicas.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoadingCompany(false);
+      }
+    };
+    
+    fetchCompany();
+  }, [user, navigate, toast]);
+  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
   };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+  
+  const handleSwitchChange = (id: string, checked: boolean) => {
+    setFormData(prev => ({ ...prev, [id]: checked }));
   };
-
-  const handleSwitchChange = (name: string, checked: boolean) => {
-    setFormData(prev => ({ ...prev, [name]: checked }));
-  };
-
-  // Manipuladores para especialidades
-  const handleAddSpecialty = () => {
-    if (newSpecialty.trim() && !specialties.includes(newSpecialty.trim())) {
-      setSpecialties(prev => [...prev, newSpecialty.trim()]);
-      setNewSpecialty('');
-    }
-  };
-
-  const handleRemoveSpecialty = (specialty: string) => {
-    setSpecialties(prev => prev.filter(item => item !== specialty));
-  };
-
-  // Manipuladores para serviços
-  const handleAddService = () => {
-    if (newService.trim() && !services.includes(newService.trim())) {
-      setServices(prev => [...prev, newService.trim()]);
-      setNewService('');
-    }
-  };
-
-  const handleRemoveService = (service: string) => {
-    setServices(prev => prev.filter(item => item !== service));
-  };
-
-  // Manipuladores para veterinários
-  const handleVeterinarianChange = (field: string, value: string) => {
-    setNewVeterinarian(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleAddVeterinarian = () => {
-    if (newVeterinarian.name.trim() && newVeterinarian.specialty.trim()) {
-      setVeterinarians(prev => [...prev, { 
-        name: newVeterinarian.name.trim(), 
-        specialty: newVeterinarian.specialty.trim() 
-      }]);
-      setNewVeterinarian({name: '', specialty: ''});
-    }
-  };
-
-  const handleRemoveVeterinarian = (index: number) => {
-    setVeterinarians(prev => prev.filter((_, i) => i !== index));
-  };
-
-  // Função de envio do formulário
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -124,437 +104,321 @@ const EmpresaClinicForm = ({
       });
       return;
     }
-
+    
+    if (!company) {
+      toast({
+        title: "Perfil incompleto",
+        description: "Complete seu perfil de empresa antes de cadastrar clínicas.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
-
+    
     try {
-      // Upload images
-      let mainImageUrl = null;
+      // Process specialties and services as arrays
+      const specialties = formData.specialties
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean);
       
-      if (images && images.length > 0) {
-        const uploadedUrls = await uploadMultipleImages(images);
-        mainImageUrl = uploadedUrls[0]; // Use the first image as the main one
-      }
-
-      // Process social media to JSON format
-      const socialMediaObj = {};
-      if (formData.socialMedia) {
-        formData.socialMedia.split(',').forEach(item => {
+      const services = formData.services
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean);
+      
+      // Process social media into JSON object
+      const socialMediaObj: Record<string, string> = {};
+      if (formData.social_media) {
+        formData.social_media.split(',').forEach(item => {
           const [platform, handle] = item.split(':').map(s => s.trim());
           if (platform && handle) {
             socialMediaObj[platform.toLowerCase()] = handle;
           }
         });
       }
-
+      
+      // Upload image if provided
+      let imageUrl = undefined;
+      if (imageFile && imageFile.length > 0) {
+        try {
+          const urls = await uploadMultipleImages(imageFile);
+          if (urls.length > 0) {
+            imageUrl = urls[0];
+          }
+        } catch (err) {
+          console.error("Erro ao fazer upload da imagem:", err);
+          toast({
+            title: "Erro no upload",
+            description: "Não foi possível fazer upload da imagem. Tente novamente.",
+            variant: "destructive"
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      
       // Insert clinic into database
-      const { data: clinicData, error: clinicError } = await supabase
+      const { data: clinic, error } = await supabase
         .from('clinics')
         .insert({
           user_id: user.id,
           name: formData.name,
           category: formData.category,
-          description: formData.description,
-          address: formData.address,
           location: formData.location,
+          address: formData.address,
           phone: formData.phone,
           email: formData.email,
           whatsapp: formData.whatsapp,
           website: formData.website,
-          open_hours: formData.openHours,
+          description: formData.description,
+          specialties,
+          services,
+          open_hours: formData.open_hours,
           social_media: socialMediaObj,
-          has_home_service: formData.hasHomeService,
-          has_parking: formData.hasParking,
-          main_image_url: mainImageUrl,
-          specialties: specialties,
-          services: services
+          has_parking: formData.has_parking,
+          has_home_service: formData.has_home_service,
+          main_image_url: imageUrl
         })
         .select()
         .single();
-
-      if (clinicError) {
-        throw clinicError;
-      }
-
-      // Insert veterinarians
-      if (veterinarians.length > 0 && clinicData) {
-        const veterinariansData = veterinarians.map(vet => ({
-          clinic_id: clinicData.id,
-          name: vet.name,
-          specialty: vet.specialty
-        }));
-
-        const { error: vetsError } = await supabase
-          .from('veterinarians')
-          .insert(veterinariansData);
-
-        if (vetsError) {
-          console.error('Erro ao adicionar veterinários:', vetsError);
-        }
-      }
-
-      // Add the new clinic to state
-      const newClinic: ClinicCardProps = {
-        id: clinicData.id,
-        name: clinicData.name,
-        image: mainImageUrl || `https://via.placeholder.com/300x200?text=Clínica`,
-        location: clinicData.location,
-        category: clinicData.category,
-        views: 0
-      };
-
-      setCompanyClinics([newClinic, ...companyClinics]);
-
+      
+      if (error) throw error;
+      
       toast({
-        title: "Clínica cadastrada",
-        description: "Sua clínica foi cadastrada com sucesso.",
+        title: "Clínica cadastrada com sucesso!",
+        description: "Sua clínica foi adicionada ao sistema."
       });
-
+      
       // Reset form
       setFormData({
         name: '',
         category: '',
-        description: '',
-        address: '',
         location: '',
+        address: '',
         phone: '',
         email: '',
         whatsapp: '',
         website: '',
-        openHours: '',
-        socialMedia: '',
-        hasHomeService: false,
-        hasParking: false
+        description: '',
+        specialties: '',
+        services: '',
+        open_hours: '',
+        social_media: '',
+        has_parking: false,
+        has_home_service: false
       });
-      setImages(null);
-      setSpecialties([]);
-      setServices([]);
-      setVeterinarians([]);
+      setImageFile(null);
       
-      // Call success callback if provided
-      if (onSubmitSuccess) {
-        onSubmitSuccess();
-      }
-    } catch (error) {
+      // Redirect to manage clinics page
+      navigate('/empresa-dashboard/clinics');
+      
+    } catch (error: any) {
       console.error('Erro ao cadastrar clínica:', error);
       toast({
         title: "Erro ao cadastrar",
-        description: "Não foi possível cadastrar sua clínica. Tente novamente.",
+        description: error.message || "Não foi possível cadastrar a clínica. Tente novamente.",
         variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-
+  
+  if (isLoadingCompany) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+  
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <Label htmlFor="name">Nome da Clínica/Hospital</Label>
-        <Input 
-          id="name" 
-          placeholder="Nome da clínica ou hospital veterinário" 
-          value={formData.name}
-          onChange={handleInputChange}
-          required 
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="category">Categoria</Label>
-        <Select 
-          value={formData.category} 
-          onValueChange={(value) => handleSelectChange('category', value)}
-          required
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione a categoria" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="clinica">Clínica Veterinária</SelectItem>
-            <SelectItem value="hospital">Hospital Veterinário</SelectItem>
-            <SelectItem value="petshop">Pet Shop com Atendimento</SelectItem>
-            <SelectItem value="especializada">Clínica Especializada</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div>
-        <Label htmlFor="description">Descrição</Label>
-        <Textarea 
-          id="description" 
-          placeholder="Descreva a clínica ou hospital detalhadamente" 
-          rows={4}
-          value={formData.description}
-          onChange={handleInputChange}
-          required 
-        />
-      </div>
-      
-      <MediaUpload
-        id="imagens"
-        label="Imagens da Clínica"
-        accept="image/*"
-        multiple={true}
-        onChange={setImages}
-        value={images}
-        required={true}
-      />
-      
-      <div>
-        <Label htmlFor="address">Endereço Completo</Label>
-        <Input 
-          id="address" 
-          placeholder="Rua, número, complemento" 
-          value={formData.address}
-          onChange={handleInputChange}
-          required 
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="location">Cidade/Estado</Label>
-        <Input 
-          id="location" 
-          placeholder="Cidade, Estado" 
-          value={formData.location}
-          onChange={handleInputChange}
-          required 
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="openHours">Horário de Funcionamento</Label>
-        <Input 
-          id="openHours" 
-          placeholder="Ex: Segunda a Sexta: 8h às 18h, Sábado: 9h às 13h" 
-          value={formData.openHours}
-          onChange={handleInputChange}
-          required 
-        />
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="phone">Telefone</Label>
-          <Input 
-            id="phone" 
-            placeholder="(00) 0000-0000" 
-            value={formData.phone}
-            onChange={handleInputChange}
-            required 
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="whatsapp">WhatsApp (opcional)</Label>
-          <Input 
-            id="whatsapp" 
-            placeholder="(00) 00000-0000" 
-            value={formData.whatsapp}
-            onChange={handleInputChange}
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="email">E-mail</Label>
-          <Input 
-            id="email" 
-            type="email"
-            placeholder="contato@clinica.com" 
-            value={formData.email}
-            onChange={handleInputChange}
-            required 
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="website">Website (opcional)</Label>
-          <Input 
-            id="website" 
-            placeholder="www.clinica.com.br" 
-            value={formData.website}
-            onChange={handleInputChange}
-          />
-        </div>
-      </div>
-      
-      <div>
-        <Label htmlFor="socialMedia">Redes Sociais (opcional)</Label>
-        <Input 
-          id="socialMedia" 
-          placeholder="Instagram: @exemplo, Facebook: /exemplo" 
-          value={formData.socialMedia}
-          onChange={handleInputChange}
-        />
-      </div>
-      
-      {/* Especialidades */}
-      <div className="space-y-2">
-        <Label>Especialidades</Label>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {specialties.map((specialty, index) => (
-            <div key={index} className="bg-pet-lightPurple/20 px-3 py-1 rounded-full flex items-center gap-2">
-              <span>{specialty}</span>
-              <button 
-                type="button" 
-                onClick={() => handleRemoveSpecialty(specialty)}
-                className="text-gray-500 hover:text-red-500"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <Input 
-            value={newSpecialty}
-            onChange={(e) => setNewSpecialty(e.target.value)}
-            placeholder="Adicionar especialidade"
-            className="flex-1"
-          />
-          <Button 
-            type="button"
-            variant="outline"
-            onClick={handleAddSpecialty}
-          >
-            <Plus size={16} className="mr-1" />
-            Adicionar
-          </Button>
-        </div>
-      </div>
-      
-      {/* Serviços */}
-      <div className="space-y-2">
-        <Label>Serviços Oferecidos</Label>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {services.map((service, index) => (
-            <div key={index} className="bg-pet-lightPurple/20 px-3 py-1 rounded-full flex items-center gap-2">
-              <span>{service}</span>
-              <button 
-                type="button" 
-                onClick={() => handleRemoveService(service)}
-                className="text-gray-500 hover:text-red-500"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <Input 
-            value={newService}
-            onChange={(e) => setNewService(e.target.value)}
-            placeholder="Adicionar serviço"
-            className="flex-1"
-          />
-          <Button 
-            type="button"
-            variant="outline"
-            onClick={handleAddService}
-          >
-            <Plus size={16} className="mr-1" />
-            Adicionar
-          </Button>
-        </div>
-      </div>
-      
-      {/* Veterinários */}
-      <div className="space-y-4">
-        <Label>Veterinários</Label>
-        
-        <div className="space-y-4 max-h-60 overflow-y-auto p-2 border rounded-md">
-          {veterinarians.map((vet, index) => (
-            <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
-              <div className="flex-1 space-y-2">
-                <p className="font-medium">{vet.name}</p>
-                <p className="text-sm text-gray-500">Especialidade: {vet.specialty}</p>
-              </div>
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm"
-                onClick={() => handleRemoveVeterinarian(index)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-xl">Cadastrar Nova Clínica</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="name">Nome da Clínica</Label>
+            <Input 
+              id="name" 
+              value={formData.name} 
+              onChange={handleInputChange} 
+              required 
+            />
+          </div>
           
-          {veterinarians.length === 0 && (
-            <p className="text-center text-gray-500 py-4">Nenhum veterinário cadastrado.</p>
-          )}
-        </div>
-        
-        <div className="p-4 border rounded-md space-y-4">
-          <h4 className="font-medium">Adicionar Veterinário</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="category">Categoria</Label>
+            <Input 
+              id="category" 
+              placeholder="Veterinária, Pet Shop, etc." 
+              value={formData.category} 
+              onChange={handleInputChange} 
+              required 
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="location">Localização</Label>
+            <Input 
+              id="location" 
+              placeholder="Cidade, Estado" 
+              value={formData.location} 
+              onChange={handleInputChange} 
+              required 
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="address">Endereço Completo</Label>
+            <Input 
+              id="address" 
+              placeholder="Rua, número, bairro, CEP" 
+              value={formData.address} 
+              onChange={handleInputChange} 
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="vetName">Nome</Label>
+              <Label htmlFor="phone">Telefone</Label>
               <Input 
-                id="vetName"
-                value={newVeterinarian.name}
-                onChange={(e) => handleVeterinarianChange('name', e.target.value)}
-                placeholder="Nome do veterinário"
+                id="phone" 
+                value={formData.phone} 
+                onChange={handleInputChange} 
               />
             </div>
+            
             <div>
-              <Label htmlFor="vetSpecialty">Especialidade</Label>
+              <Label htmlFor="whatsapp">WhatsApp</Label>
               <Input 
-                id="vetSpecialty"
-                value={newVeterinarian.specialty}
-                onChange={(e) => handleVeterinarianChange('specialty', e.target.value)}
-                placeholder="Especialidade"
+                id="whatsapp" 
+                value={formData.whatsapp} 
+                onChange={handleInputChange} 
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input 
+                id="email" 
+                type="email" 
+                value={formData.email} 
+                onChange={handleInputChange} 
               />
             </div>
           </div>
+          
+          <div>
+            <Label htmlFor="website">Website</Label>
+            <Input 
+              id="website" 
+              value={formData.website} 
+              onChange={handleInputChange} 
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="social_media">Redes Sociais (formato: plataforma:@usuario, ...)</Label>
+            <Input 
+              id="social_media" 
+              placeholder="instagram:@exemplo, facebook:/exemplo" 
+              value={formData.social_media} 
+              onChange={handleInputChange} 
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="has_parking"
+                checked={formData.has_parking}
+                onCheckedChange={(checked) => handleSwitchChange('has_parking', checked)}
+              />
+              <Label htmlFor="has_parking">Possui estacionamento</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="has_home_service"
+                checked={formData.has_home_service}
+                onCheckedChange={(checked) => handleSwitchChange('has_home_service', checked)}
+              />
+              <Label htmlFor="has_home_service">Atendimento em domicílio</Label>
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="specialties">Especialidades (separadas por vírgula)</Label>
+            <Input 
+              id="specialties" 
+              placeholder="Cardiologia, Dermatologia, etc." 
+              value={formData.specialties} 
+              onChange={handleInputChange} 
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="services">Serviços (separados por vírgula)</Label>
+            <Input 
+              id="services" 
+              placeholder="Consultas, Vacinas, Cirurgias, etc." 
+              value={formData.services} 
+              onChange={handleInputChange} 
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="open_hours">Horário de Funcionamento</Label>
+            <Input 
+              id="open_hours" 
+              placeholder="Segunda a Sexta: 8h às 18h, Sábado: 8h às 12h" 
+              value={formData.open_hours} 
+              onChange={handleInputChange} 
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="description">Descrição</Label>
+            <Textarea 
+              id="description" 
+              rows={4}
+              value={formData.description} 
+              onChange={handleInputChange} 
+            />
+          </div>
+          
+          <MediaUpload
+            id="clinic-image"
+            label="Imagem da Clínica"
+            accept="image/*"
+            multiple={false}
+            onChange={setImageFile}
+            value={imageFile}
+            required={false}
+          />
+          
           <Button 
-            type="button"
-            variant="outline"
-            onClick={handleAddVeterinarian}
-            className="w-full"
+            type="submit" 
+            className="w-full" 
+            disabled={isSubmitting}
           >
-            <Plus size={16} className="mr-1" />
-            Adicionar Veterinário
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Cadastrando...
+              </>
+            ) : (
+              'Cadastrar Clínica'
+            )}
           </Button>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex items-center space-x-2">
-          <Switch 
-            id="hasHomeService" 
-            checked={formData.hasHomeService}
-            onCheckedChange={(checked) => handleSwitchChange('hasHomeService', checked)}
-          />
-          <Label htmlFor="hasHomeService">Oferece atendimento domiciliar?</Label>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Switch 
-            id="hasParking" 
-            checked={formData.hasParking}
-            onCheckedChange={(checked) => handleSwitchChange('hasParking', checked)}
-          />
-          <Label htmlFor="hasParking">Possui estacionamento?</Label>
-        </div>
-      </div>
-      
-      <Button 
-        type="submit" 
-        className="w-full bg-pet-purple hover:bg-pet-lightPurple"
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Cadastrando...
-          </>
-        ) : (
-          'Cadastrar Clínica'
-        )}
-      </Button>
-    </form>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

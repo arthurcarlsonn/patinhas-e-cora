@@ -32,7 +32,7 @@ const OngForm = ({ onSubmit: parentOnSubmit }: OngFormProps) => {
     descricao: ''
   });
 
-  const [images, setImages] = useState<FileList | null>(null);
+  const [images, setImages] = useState<File[] | null>(null);
   const [video, setVideo] = useState<File | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -298,7 +298,7 @@ const OngForm = ({ onSubmit: parentOnSubmit }: OngFormProps) => {
         accept="video/*"
         multiple={false}
         onChange={(files) => files && files.length > 0 ? setVideo(files[0]) : setVideo(null)}
-        value={video ? new DataTransfer().files : null}
+        value={video ? [video] : null}
       />
       
       <Button 
