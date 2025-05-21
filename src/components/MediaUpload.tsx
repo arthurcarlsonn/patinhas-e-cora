@@ -11,7 +11,7 @@ interface MediaUploadProps {
   accept: string;
   multiple?: boolean;
   onChange: (files: FileList | null) => void;
-  value?: FileList | null;
+  value?: File[] | null;
   required?: boolean;
   existingUrls?: string[];
 }
@@ -43,7 +43,7 @@ const MediaUpload = ({
     
     const newPreviews: string[] = [];
     
-    Array.from(value).forEach(file => {
+    value.forEach(file => {
       const reader = new FileReader();
       reader.onload = (e) => {
         if (e.target?.result) {
@@ -80,16 +80,9 @@ const MediaUpload = ({
     setIsDragging(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      if (multiple) {
-        onChange(e.dataTransfer.files);
-      } else {
-        // If not multiple, just take the first file
-        const singleFile = new DataTransfer();
-        singleFile.items.add(e.dataTransfer.files[0]);
-        onChange(singleFile.files);
-      }
+      onChange(e.dataTransfer.files);
     }
-  }, [multiple, onChange]);
+  }, [onChange]);
 
   const clearFiles = () => {
     onChange(null);

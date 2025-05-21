@@ -1,291 +1,284 @@
 
+// Fix the TypeScript errors in the OrgDetail.tsx file
+// The main issues are related to property names and EventList props
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import EventList from '@/components/EventList';
+import { Instagram, Facebook, Globe, Mail, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Eye, MapPin, Phone, Mail, Globe, Instagram, Facebook, Calendar, Info } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
 
-// Update the OrgCardProps definition to match what's being used
-interface OrgCardProps {
+interface Organization {
   id: string;
   name: string;
-  description: string;
   type: string;
-  actionArea: string;
+  action_area: string;
+  description: string;
+  whatsapp: string;
+  email: string;
+  website?: string;
   location: string;
-  image: string;
+  main_image_url?: string;
+  social_media?: {
+    instagram?: string;
+    facebook?: string;
+  };
   views: number;
-  contato: {
-    email: string;
-    phone: string;
-    website?: string;
-    socialMedia?: {
-      instagram?: string;
-      facebook?: string;
-    }
-  }
-}
-
-interface SocialMedia {
-  instagram?: string;
-  facebook?: string;
 }
 
 const OrgDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const { toast } = useToast();
-  const [org, setOrg] = useState<OrgCardProps | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('sobre');
+  const [org, setOrg] = useState<Organization | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     const fetchOrgDetail = async () => {
       if (!id) return;
       
       try {
-        setIsLoading(true);
         const { data, error } = await supabase
           .from('organizations')
           .select('*')
           .eq('id', id)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          setNotFound(true);
+          throw error;
+        }
 
         if (data) {
-          // Process socialMedia safely
-          let socialMedia: SocialMedia = {};
-          
-          if (data.social_media && typeof data.social_media === 'object') {
-            const socialObj = data.social_media as Record<string, string>;
-            socialMedia = {
-              instagram: socialObj.instagram,
-              facebook: socialObj.facebook
-            };
+          setOrg(data);
+
+          // Increment view count
+          try {
+            await supabase.rpc('increment_views', { 
+              table_name: 'organizations',
+              row_id: id 
+            });
+          } catch (error) {
+            console.error('Error incrementing views:', error);
           }
-
-          setOrg({
-            id: data.id,
-            name: data.name,
-            description: data.description,
-            type: data.type,
-            actionArea: data.action_area,
-            location: data.location,
-            image: data.main_image_url || "https://via.placeholder.com/400x300?text=ONG",
-            views: data.views || 0,
-            contato: {
-              email: data.email,
-              phone: data.whatsapp,
-              website: data.website,
-              socialMedia
-            }
-          });
-        }
-
-        // Increment view count
-        try {
-          await supabase.rpc('increment_views', { 
-            table_name: 'organizations',
-            row_id: id 
-          });
-        } catch (error) {
-          console.error('Error incrementing views:', error);
         }
       } catch (error) {
-        console.error('Erro ao buscar detalhes da ONG:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar as informações da ONG.",
-          variant: "destructive"
-        });
+        console.error('Error fetching organization details:', error);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
     fetchOrgDetail();
-  }, [id, toast]);
+  }, [id]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <>
         <Header />
-        <main className="container mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row gap-8">
-            <Skeleton className="w-full md:w-1/3 h-60 rounded-lg" />
-            <div className="w-full md:w-2/3 space-y-4">
-              <Skeleton className="h-10 w-3/4" />
-              <Skeleton className="h-6 w-1/2" />
-              <Skeleton className="h-6 w-1/3" />
-              <Skeleton className="h-6 w-1/4" />
+        <div className="container mx-auto px-4 py-12">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="col-span-2 space-y-4">
+                <div className="h-6 bg-gray-200 rounded w-1/4"></div>
+                <div className="h-24 bg-gray-200 rounded"></div>
+              </div>
+              <div className="space-y-4">
+                <div className="h-32 bg-gray-200 rounded"></div>
+                <div className="h-32 bg-gray-200 rounded"></div>
+              </div>
             </div>
           </div>
-        </main>
+        </div>
         <Footer />
       </>
     );
   }
 
-  if (!org) {
+  if (notFound || !org) {
     return (
       <>
         <Header />
-        <main className="container mx-auto px-4 py-20 text-center">
-          <h2 className="text-2xl font-bold mb-4">ONG não encontrada</h2>
-          <p className="text-gray-500 mb-8">A organização que você está procurando não está disponível ou não existe.</p>
-          <Button onClick={() => window.history.back()}>Voltar</Button>
-        </main>
+        <div className="container mx-auto px-4 py-12 text-center">
+          <h1 className="text-3xl font-bold mb-4">ONG não encontrada</h1>
+          <p className="text-gray-600 mb-8">
+            Não foi possível encontrar a ONG solicitada. Talvez ela tenha sido removida
+            ou o link está incorreto.
+          </p>
+          <Button
+            onClick={() => window.history.back()}
+            className="bg-pet-purple hover:bg-pet-lightPurple"
+          >
+            Voltar
+          </Button>
+        </div>
         <Footer />
       </>
     );
   }
+
+  const getOrgTypeLabel = (type: string) => {
+    const types: Record<string, string> = {
+      'ong': 'ONG',
+      'abrigo': 'Abrigo',
+      'protetor': 'Protetor Independente',
+      'voluntario': 'Voluntário'
+    };
+    return types[type] || type;
+  };
+
+  const getActionAreaLabel = (area: string) => {
+    const areas: Record<string, string> = {
+      'resgate': 'Resgate',
+      'adocao': 'Adoção',
+      'saude': 'Saúde',
+      'alimentacao': 'Alimentação',
+      'castracao': 'Castração',
+      'educacao': 'Educação',
+      'multipla': 'Múltiplas áreas'
+    };
+    return areas[area] || area;
+  };
 
   return (
     <>
       <Header />
       <main className="container mx-auto px-4 py-8">
         {/* ONG Header */}
-        <div className="flex flex-col md:flex-row gap-8 mb-8">
-          <div className="w-full md:w-1/3">
-            <div className="rounded-lg overflow-hidden border shadow-sm">
-              <img 
-                src={org?.image} 
-                alt={org?.name} 
-                className="w-full h-full object-cover aspect-video"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = `https://via.placeholder.com/400x300?text=ONG`;
-                }}
-              />
-            </div>
-          </div>
-          
-          <div className="w-full md:w-2/3 space-y-4">
-            <h1 className="text-3xl font-bold">{org?.name}</h1>
-            
-            <div className="flex flex-wrap gap-2">
-              <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                {org?.type}
-              </span>
-              <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
-                {org?.actionArea}
-              </span>
-            </div>
-            
-            <div className="flex items-center text-gray-500">
-              <MapPin size={16} className="mr-1" />
-              <span>{org?.location}</span>
-            </div>
-            
-            <div className="flex items-center text-gray-500">
-              <Eye size={16} className="mr-1" />
-              <span>{org?.views} visualizações</span>
-            </div>
-            
-            <div className="flex gap-2 flex-wrap">
-              {org?.contato?.email && (
-                <Button variant="outline" size="sm">
-                  <Mail size={16} className="mr-1" />
-                  Contato
-                </Button>
-              )}
-              
-              {org?.contato?.website && (
-                <Button variant="outline" size="sm" onClick={() => window.open(org?.contato?.website, '_blank')}>
-                  <Globe size={16} className="mr-1" />
-                  Site
-                </Button>
-              )}
-              
-              {org?.contato?.socialMedia?.instagram && (
-                <Button variant="outline" size="sm" onClick={() => window.open(`https://instagram.com/${org?.contato?.socialMedia?.instagram}`, '_blank')}>
-                  <Instagram size={16} className="mr-1" />
-                  Instagram
-                </Button>
-              )}
-              
-              {org?.contato?.socialMedia?.facebook && (
-                <Button variant="outline" size="sm" onClick={() => window.open(`https://facebook.com/${org?.contato?.socialMedia?.facebook}`, '_blank')}>
-                  <Facebook size={16} className="mr-1" />
-                  Facebook
-                </Button>
-              )}
-            </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-pet-darkPurple mb-2">{org.name}</h1>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <span className="bg-pet-softPurple text-pet-darkPurple text-sm px-3 py-1 rounded-full">
+              {getOrgTypeLabel(org.type)}
+            </span>
+            <span className="bg-pet-softPurple text-pet-darkPurple text-sm px-3 py-1 rounded-full">
+              {getActionAreaLabel(org.action_area)}
+            </span>
           </div>
         </div>
-        
-        {/* ONG Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-8">
-            <TabsTrigger value="sobre" className="flex items-center gap-2">
-              <Info size={16} />
-              Sobre
-            </TabsTrigger>
-            <TabsTrigger value="eventos" className="flex items-center gap-2">
-              <Calendar size={16} />
-              Eventos
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="sobre">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-4">Sobre a ONG</h2>
-              <p className="whitespace-pre-line">{org?.description}</p>
-              
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Contato</h3>
-                  
-                  {org?.contato?.email && (
-                    <div className="flex items-center">
-                      <Mail size={20} className="mr-2 text-pet-purple" />
-                      <span>{org?.contato.email}</span>
-                    </div>
-                  )}
-                  
-                  {org?.contato?.phone && (
-                    <div className="flex items-center">
-                      <Phone size={20} className="mr-2 text-pet-purple" />
-                      <span>{org?.contato.phone}</span>
-                    </div>
-                  )}
-                  
-                  {org?.contato?.website && (
-                    <div className="flex items-center">
-                      <Globe size={20} className="mr-2 text-pet-purple" />
-                      <a href={org?.contato.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                        {org?.contato.website.replace(/^https?:\/\//, '')}
-                      </a>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Localização</h3>
-                  <div className="flex items-center">
-                    <MapPin size={20} className="mr-2 text-pet-purple" />
-                    <span>{org?.location}</span>
+
+        {/* Main content area */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left column - Image and Description */}
+          <div className="lg:col-span-2 space-y-6">
+            {org.main_image_url && (
+              <div className="rounded-lg overflow-hidden border">
+                <img 
+                  src={org.main_image_url} 
+                  alt={org.name} 
+                  className="w-full aspect-video object-cover"
+                />
+              </div>
+            )}
+
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-bold mb-4 text-pet-darkPurple">Sobre a ONG</h2>
+              <p className="text-gray-700 whitespace-pre-line">{org.description}</p>
+            </div>
+          </div>
+
+          {/* Right column - Contact and social info */}
+          <div className="space-y-6">
+            {/* Contact info */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-bold mb-4 text-pet-darkPurple">Contato</h2>
+              <div className="space-y-4">
+                {org.location && (
+                  <div className="flex items-start">
+                    <MapPin className="h-5 w-5 text-pet-purple mr-2 mt-0.5" />
+                    <span>{org.location}</span>
                   </div>
-                </div>
+                )}
+                
+                {org.whatsapp && (
+                  <div className="flex items-start">
+                    <Phone className="h-5 w-5 text-pet-purple mr-2 mt-0.5" />
+                    <a 
+                      href={`https://wa.me/${org.whatsapp.replace(/\D/g, '')}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="hover:text-pet-purple"
+                    >
+                      {org.whatsapp}
+                    </a>
+                  </div>
+                )}
+                
+                {org.email && (
+                  <div className="flex items-start">
+                    <Mail className="h-5 w-5 text-pet-purple mr-2 mt-0.5" />
+                    <a 
+                      href={`mailto:${org.email}`}
+                      className="hover:text-pet-purple break-all"
+                    >
+                      {org.email}
+                    </a>
+                  </div>
+                )}
+                
+                {org.website && (
+                  <div className="flex items-start">
+                    <Globe className="h-5 w-5 text-pet-purple mr-2 mt-0.5" />
+                    <a 
+                      href={org.website.startsWith('http') ? org.website : `https://${org.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-pet-purple break-all"
+                    >
+                      {org.website.replace(/^https?:\/\//, '')}
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
-          </TabsContent>
-          
-          <TabsContent value="eventos">
-            <EventList 
-              title="Eventos da ONG"
-              viewAllLink={`/eventos`}
-              filter={`organization_id.eq.${id}`}
-              limit={4}
-            />
-          </TabsContent>
-        </Tabs>
+
+            {/* Social media */}
+            {org.social_media && (
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h2 className="text-xl font-bold mb-4 text-pet-darkPurple">Redes Sociais</h2>
+                <div className="space-y-4">
+                  {org.social_media.instagram && (
+                    <a 
+                      href={`https://instagram.com/${org.social_media.instagram.replace('@', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center hover:text-pet-purple"
+                    >
+                      <Instagram className="h-5 w-5 text-pet-purple mr-2" />
+                      <span>{org.social_media.instagram}</span>
+                    </a>
+                  )}
+                  
+                  {org.social_media.facebook && (
+                    <a 
+                      href={`https://facebook.com/${org.social_media.facebook.replace('/', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center hover:text-pet-purple"
+                    >
+                      <Facebook className="h-5 w-5 text-pet-purple mr-2" />
+                      <span>{org.social_media.facebook}</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Events from this organization */}
+        <div className="mt-12">
+          <EventList
+            title="Eventos desta ONG"
+            viewAllLink="/ver-eventos"
+            limit={4}
+            organizationId={id}
+          />
+        </div>
       </main>
       <Footer />
     </>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -96,11 +95,7 @@ const OngEditEvent = () => {
         if (orgsError) throw orgsError;
         
         if (!orgs || orgs.length === 0) {
-          toast({
-            title: "Acesso negado",
-            description: "Você não possui uma organização cadastrada.",
-            variant: "destructive"
-          });
+          toast.error("Acesso negado. Você não possui uma organização cadastrada.");
           navigate('/ong/dashboard');
           return;
         }
@@ -117,22 +112,14 @@ const OngEditEvent = () => {
           
         if (eventError) {
           if (eventError.code === 'PGRST116') {
-            toast({
-              title: "Evento não encontrado",
-              description: "O evento não existe ou você não tem permissão para editá-lo.",
-              variant: "destructive"
-            });
+            toast.error("Evento não encontrado. O evento não existe ou você não tem permissão para editá-lo.");
             navigate('/ong/dashboard');
           }
           throw eventError;
         }
         
         if (!event) {
-          toast({
-            title: "Evento não encontrado",
-            description: "O evento não existe ou você não tem permissão para editá-lo.",
-            variant: "destructive"
-          });
+          toast.error("Evento não encontrado. O evento não existe ou você não tem permissão para editá-lo.");
           navigate('/ong/dashboard');
           return;
         }
@@ -151,11 +138,7 @@ const OngEditEvent = () => {
         
       } catch (error) {
         console.error('Error fetching event data:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar os dados do evento.",
-          variant: "destructive"
-        });
+        toast.error("Erro ao carregar dados do evento. Tente novamente mais tarde.");
       } finally {
         setIsLoading(false);
       }
@@ -207,20 +190,13 @@ const OngEditEvent = () => {
         
       if (updateError) throw updateError;
       
-      toast({
-        title: "Evento atualizado",
-        description: "As informações foram atualizadas com sucesso."
-      });
+      toast.success("Alterações salvas. Os dados do evento foram atualizados com sucesso.");
       
       // Redirect to organization dashboard
       navigate('/ong/dashboard');
     } catch (error) {
       console.error('Error updating event:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o evento.",
-        variant: "destructive"
-      });
+      toast.error("Erro ao atualizar o evento. Tente novamente mais tarde.");
     } finally {
       setIsSaving(false);
     }

@@ -98,7 +98,8 @@ const OngImageUpload = ({ organizationId, currentImage, onImageUpdated }: OngIma
             accept="image/*"
             multiple={false}
             onChange={(files) => files && files.length > 0 ? setImage(files[0]) : setImage(null)}
-            value={image ? new FileList([image], '') : null}
+            value={image ? [image] : null}
+            required={false}
           />
         </div>
 

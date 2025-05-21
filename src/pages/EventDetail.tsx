@@ -89,7 +89,7 @@ const EventDetail = () => {
           }
         });
 
-        // Increment view count - fix the type error
+        // Increment view count
         try {
           await supabase.rpc('increment_views', { 
             table_name: 'events',

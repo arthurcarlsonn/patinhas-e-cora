@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -61,11 +60,7 @@ const PetEditForm = () => {
           
         if (petError) throw petError;
         if (!pet) {
-          toast({
-            title: "Pet não encontrado",
-            description: "Não foi possível encontrar esse pet.",
-            variant: "destructive"
-          });
+          toast.error("Pet não encontrado. Tente novamente mais tarde.");
           navigate('/dashboard');
           return;
         }
@@ -113,11 +108,7 @@ const PetEditForm = () => {
         setCurrentImages(allImages);
       } catch (error) {
         console.error('Error fetching pet data:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar os dados do pet.",
-          variant: "destructive"
-        });
+        toast.error("Erro ao carregar dados do pet. Tente novamente mais tarde.");
       } finally {
         setIsLoading(false);
       }
@@ -229,20 +220,13 @@ const PetEditForm = () => {
         if (imagesError) throw imagesError;
       }
       
-      toast({
-        title: "Pet atualizado",
-        description: "As informações foram atualizadas com sucesso."
-      });
+      toast.success("Os dados do pet foram atualizados com sucesso.");
       
       // Redirect to pet detail
       navigate(`/pet/${id}`);
     } catch (error) {
       console.error('Error updating pet:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o pet.",
-        variant: "destructive"
-      });
+      toast.error("Erro ao atualizar o pet. Tente novamente mais tarde.");
     } finally {
       setIsSaving(false);
     }

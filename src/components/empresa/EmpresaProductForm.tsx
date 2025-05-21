@@ -1,112 +1,144 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { MapPin, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { ProductCardProps } from '@/components/ProductCard';
 import MediaUpload from '@/components/MediaUpload';
-import { uploadMultipleImages } from '@/utils/uploadUtils';
+import ProductCard from '@/components/ProductCard';
+import { Loader2 } from 'lucide-react';
 
-interface EmpresaProductFormProps {
-  companyProducts: ProductCardProps[];
-  setCompanyProducts: (products: ProductCardProps[]) => void;
-  onSubmitSuccess?: () => void;
+interface Product {
+  id?: string;
+  title: string;
+  description: string;
+  price: number;
+  location: string;
+  category: string;
+  main_image_url?: string;
 }
 
-const EmpresaProductForm = ({
-  companyProducts,
-  setCompanyProducts,
-  onSubmitSuccess
-}: EmpresaProductFormProps) => {
-  const { toast } = useToast();
+const EmpresaProductForm = () => {
   const { user } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const [formData, setFormData] = useState({
+  const [product, setProduct] = useState<Product>({
     title: '',
-    category: '',
     description: '',
-    price: '',
+    price: 0,
     location: '',
-    contact: '',
-    socialMedia: '',
-    website: '',
-    homeDelivery: false
+    category: '',
+    main_image_url: ''
   });
+  const [image, setImage] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [company, setCompany] = useState<{ id: string; company_name: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [images, setImages] = useState<FileList | null>(null);
+  useEffect(() => {
+    if (!user) {
+      navigate('/entrar');
+      return;
+    }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
-  };
+    const fetchCompanyAndProducts = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch company data
+        const { data: companyData, error: companyError } = await supabase
+          .from('companies')
+          .select('id, company_name')
+          .eq('user_id', user.id)
+          .single();
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+        if (companyError) {
+          throw companyError;
+        }
 
-  const handleSwitchChange = (name: string, checked: boolean) => {
-    setFormData(prev => ({ ...prev, [name]: checked }));
-  };
+        if (companyData) {
+          setCompany(companyData);
+
+          // Fetch products for the company
+          const { data: productsData, error: productsError } = await supabase
+            .from('products')
+            .select('*')
+            .eq('company_id', companyData.id);
+
+          if (productsError) {
+            throw productsError;
+          }
+
+          if (productsData) {
+            setProducts(productsData);
+          }
+        }
+      } catch (error: any) {
+        console.error('Error fetching data:', error);
+        toast({
+          title: "Erro ao carregar dados",
+          description: error.message || "Tente novamente mais tarde.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCompanyAndProducts();
+  }, [user, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!user) {
+
+    if (!company) {
       toast({
-        title: "Erro de autenticação",
-        description: "Você precisa estar logado para cadastrar um produto.",
+        title: "Erro",
+        description: "Você precisa cadastrar sua empresa primeiro.",
         variant: "destructive"
       });
       return;
     }
 
-    setIsSubmitting(true);
-
+    setIsSaving(true);
     try {
-      // Upload images
-      let mainImageUrl = null;
-      let additionalImageUrls: string[] = [];
-      
-      if (images && images.length > 0) {
-        const uploadedUrls = await uploadMultipleImages(images);
-        mainImageUrl = uploadedUrls[0];
-        additionalImageUrls = uploadedUrls.slice(1);
+      // Upload image if it exists
+      let imageUrl = product.main_image_url;
+      if (image) {
+        const fileExt = image.name.split('.').pop();
+        const filePath = `products/${company.id}/${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('pet-images')
+          .upload(filePath, image, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data } = supabase.storage.from('pet-images').getPublicUrl(filePath);
+        imageUrl = data.publicUrl;
       }
 
-      // Process social media to JSON format
-      const socialMediaObj = {};
-      if (formData.socialMedia) {
-        formData.socialMedia.split(',').forEach(item => {
-          const [platform, handle] = item.split(':').map(s => s.trim());
-          if (platform && handle) {
-            socialMediaObj[platform.toLowerCase()] = handle;
-          }
-        });
-      }
-
-      // Insert product into database
+      // Create product in database
       const { data: productData, error: productError } = await supabase
         .from('products')
-        .insert({
-          user_id: user.id,
-          title: formData.title,
-          category: formData.category,
-          description: formData.description,
-          price: parseFloat(formData.price),
-          home_delivery: formData.homeDelivery,
-          main_image_url: mainImageUrl,
-          contact: formData.contact,
-          social_media: socialMediaObj,
-          website: formData.website,
-          location: formData.location
-        })
+        .insert([
+          {
+            ...product,
+            company_id: company.id,
+            main_image_url: imageUrl
+          }
+        ])
         .select()
         .single();
 
@@ -114,213 +146,153 @@ const EmpresaProductForm = ({
         throw productError;
       }
 
-      // Insert additional images
-      if (additionalImageUrls.length > 0 && productData) {
-        const productImagesData = additionalImageUrls.map(url => ({
-          product_id: productData.id,
-          image_url: url
-        }));
+      setProducts([...products, productData]);
 
-        const { error: imagesError } = await supabase
-          .from('product_images')
-          .insert(productImagesData);
-
-        if (imagesError) {
-          console.error('Erro ao adicionar imagens:', imagesError);
-        }
-      }
-
-      // Add the new product to state with corrected properties
-      const newProduct: ProductCardProps = {
-        id: productData.id,
-        title: productData.title,
-        image: mainImageUrl || `https://via.placeholder.com/300x200?text=Produto`,
-        price: Number(productData.price),
-        category: productData.category,
-        location: productData.location,
-        views: 0,
-        // Fix the business property according to ProductCardProps type
-        business: {
-          name: 'Sua Empresa',
-          verified: true
-        },
-        // Adjust homeDelivery to match ProductCardProps if needed
-      };
-
-      setCompanyProducts([newProduct, ...companyProducts]);
+      // Reset form
+      setProduct({
+        title: '',
+        description: '',
+        price: 0,
+        location: '',
+        category: '',
+        main_image_url: ''
+      });
+      setImage(null);
 
       toast({
         title: "Produto cadastrado",
-        description: "Seu produto foi cadastrado com sucesso.",
+        description: "O produto foi cadastrado com sucesso."
       });
-
-      // Reset form
-      setFormData({
-        title: '',
-        category: '',
-        description: '',
-        price: '',
-        location: '',
-        contact: '',
-        socialMedia: '',
-        website: '',
-        homeDelivery: false
-      });
-      setImages(null);
-      
-      // Call success callback if provided
-      if (onSubmitSuccess) {
-        onSubmitSuccess();
-      }
-    } catch (error) {
-      console.error('Erro ao cadastrar produto:', error);
+    } catch (error: any) {
+      console.error('Error creating product:', error);
       toast({
-        title: "Erro ao cadastrar",
-        description: "Não foi possível cadastrar seu produto. Tente novamente.",
+        title: "Erro ao cadastrar produto",
+        description: error.message || "Tente novamente mais tarde.",
         variant: "destructive"
       });
     } finally {
-      setIsSubmitting(false);
+      setIsSaving(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <Label htmlFor="title">Título</Label>
-        <Input 
-          id="title" 
-          placeholder="Digite o título do produto" 
-          value={formData.title}
-          onChange={handleInputChange}
-          required 
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="category">Categoria</Label>
-        <Select 
-          value={formData.category} 
-          onValueChange={(value) => handleSelectChange('category', value)}
-          required
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione a categoria" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="alimentacao">Alimentação</SelectItem>
-            <SelectItem value="acessorios">Acessórios</SelectItem>
-            <SelectItem value="brinquedos">Brinquedos</SelectItem>
-            <SelectItem value="higiene">Higiene e Limpeza</SelectItem>
-            <SelectItem value="medicamentos">Medicamentos</SelectItem>
-            <SelectItem value="servicos">Serviços Pet</SelectItem>
-            <SelectItem value="outros">Outros</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div>
-        <Label htmlFor="description">Descrição</Label>
-        <Textarea 
-          id="description" 
-          placeholder="Descreva o produto detalhadamente" 
-          rows={4}
-          value={formData.description}
-          onChange={handleInputChange}
-          required 
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="price">Preço (R$)</Label>
-        <Input 
-          id="price" 
-          type="number" 
-          step="0.01" 
-          min="0" 
-          placeholder="0,00" 
-          value={formData.price}
-          onChange={handleInputChange}
-          required 
-        />
-      </div>
-      
-      <div className="flex items-center space-x-2">
-        <Switch 
-          id="homeDelivery" 
-          checked={formData.homeDelivery}
-          onCheckedChange={(checked) => handleSwitchChange('homeDelivery', checked)}
-        />
-        <Label htmlFor="homeDelivery">Oferece entrega a domicílio?</Label>
-      </div>
-      
-      <MediaUpload
-        id="imagens"
-        label="Imagens do Produto"
-        accept="image/*"
-        multiple={true}
-        onChange={setImages}
-        value={images}
-        required={true}
-      />
-      
-      <div>
-        <Label htmlFor="contact">Contatos</Label>
-        <Input 
-          id="contact" 
-          placeholder="Telefone, WhatsApp, etc." 
-          value={formData.contact}
-          onChange={handleInputChange}
-          required 
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="socialMedia">Redes Sociais (opcional)</Label>
-        <Input 
-          id="socialMedia" 
-          placeholder="Instagram: @exemplo, Facebook: /exemplo" 
-          value={formData.socialMedia}
-          onChange={handleInputChange}
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="website">Website (opcional)</Label>
-        <Input 
-          id="website" 
-          placeholder="www.seusite.com.br" 
-          value={formData.website}
-          onChange={handleInputChange}
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="location">Localização</Label>
-        <Input 
-          id="location" 
-          placeholder="Cidade, Estado" 
-          value={formData.location}
-          onChange={handleInputChange}
-          required 
-        />
-      </div>
-      
-      <Button 
-        type="submit" 
-        className="w-full bg-pet-purple hover:bg-pet-lightPurple"
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Cadastrando...
-          </>
+    <div className="container mx-auto px-4 py-8">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Cadastrar Novo Produto</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="title">Título</Label>
+              <Input
+                type="text"
+                id="title"
+                value={product.title}
+                onChange={(e) => setProduct({ ...product, title: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                value={product.description}
+                onChange={(e) => setProduct({ ...product, description: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="price">Preço</Label>
+              <Input
+                type="number"
+                id="price"
+                value={product.price.toString()}
+                onChange={(e) => setProduct({ ...product, price: parseFloat(e.target.value) })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="location">Localização</Label>
+              <Input
+                type="text"
+                id="location"
+                value={product.location}
+                onChange={(e) => setProduct({ ...product, location: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="category">Categoria</Label>
+              <Select
+                onValueChange={(value) => setProduct({ ...product, category: value })}
+              >
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Alimentos">Alimentos</SelectItem>
+                  <SelectItem value="Acessórios">Acessórios</SelectItem>
+                  <SelectItem value="Brinquedos">Brinquedos</SelectItem>
+                  <SelectItem value="Higiene e Beleza">Higiene e Beleza</SelectItem>
+                  <SelectItem value="Saúde">Saúde</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="image">Imagem Principal</Label>
+              <MediaUpload
+                id="image"
+                label="Selecione uma imagem"
+                accept="image/*"
+                multiple={false}
+                onChange={(files) => {
+                  if (files && files.length > 0) {
+                    setImage(files[0]);
+                  } else {
+                    setImage(null);
+                  }
+                }}
+              />
+            </div>
+            <Button disabled={isSaving} className="w-full bg-pet-purple hover:bg-pet-lightPurple">
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                'Cadastrar Produto'
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Produtos Cadastrados</h2>
+        {isLoading ? (
+          <div className="flex justify-center">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : products.length === 0 ? (
+          <p>Nenhum produto cadastrado ainda.</p>
         ) : (
-          'Cadastrar Produto'
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {products.map((product) => (
+              <ProductCard
+                id={product.id}
+                title={product.title}
+                image={product.main_image_url || '/placeholder.svg'}
+                price={product.price}
+                companyName={company?.company_name || 'Empresa'}
+                location={product.location}
+              />
+            ))}
+          </div>
         )}
-      </Button>
-    </form>
+      </div>
+    </div>
   );
 };
 
