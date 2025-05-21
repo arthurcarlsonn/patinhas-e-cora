@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -10,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Plus, X } from 'lucide-react';
+import { Loader2, Plus, X, Trash2 } from 'lucide-react';
 import MediaUpload from '@/components/MediaUpload';
 import { uploadMultipleImages } from '@/utils/uploadUtils';
 
@@ -582,7 +581,7 @@ const ClinicEditForm = ({ clinic, onCancel, onUpdate }: ClinicEditFormProps) => 
                 size="sm"
                 onClick={() => handleRemoveVeterinarian(index)}
               >
-                <Trash className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           ))}

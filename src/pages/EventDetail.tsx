@@ -11,6 +11,34 @@ import EventActions from '@/components/event-detail/EventActions';
 import EventNotFound from '@/components/event-detail/EventNotFound';
 import EventLoading from '@/components/event-detail/EventLoading';
 
+// Define proper interfaces for the components
+interface EventHeaderProps {
+  title: string;
+  date: string;
+  location: string;
+  category: string;
+  organization: {
+    id: string;
+    name: string;
+  };
+  mainImageUrl?: string;
+}
+
+interface EventInfoProps {
+  date: string;
+  location: string;
+  views: number;
+  organization: {
+    id: string;
+    name: string;
+  };
+}
+
+interface EventActionsProps {
+  id: string;
+  title: string;
+}
+
 interface EventDetail {
   id: string;
   title: string;
@@ -68,7 +96,7 @@ const EventDetail = () => {
           }
         });
 
-        // Increment view count
+        // Increment view count - fix the type error
         if (id) {
           try {
             await supabase.rpc('increment_views', { 
@@ -117,14 +145,29 @@ const EventDetail = () => {
     <>
       <Header />
       <main className="container mx-auto px-4 py-8">
-        <EventHeader event={event} />
+        <EventHeader 
+          title={event.title}
+          date={event.date}
+          location={event.location}
+          category={event.category}
+          organization={event.organization}
+          mainImageUrl={event.main_image_url}
+        />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
           <div className="md:col-span-2">
             <EventDescription description={event.description} />
           </div>
           <div className="space-y-6">
-            <EventInfo event={event} />
-            <EventActions event={event} />
+            <EventInfo 
+              date={event.date}
+              location={event.location}
+              views={event.views}
+              organization={event.organization}
+            />
+            <EventActions 
+              id={event.id}
+              title={event.title}
+            />
           </div>
         </div>
       </main>

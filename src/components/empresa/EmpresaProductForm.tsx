@@ -130,7 +130,7 @@ const EmpresaProductForm = ({
         }
       }
 
-      // Add the new product to state
+      // Add the new product to state with corrected properties
       const newProduct: ProductCardProps = {
         id: productData.id,
         title: productData.title,
@@ -139,12 +139,12 @@ const EmpresaProductForm = ({
         category: productData.category,
         location: productData.location,
         views: 0,
+        // Fix the business property according to ProductCardProps type
         business: {
-          id: user.id,
           name: 'Sua Empresa',
           verified: true
         },
-        homeDelivery: productData.home_delivery
+        // Adjust homeDelivery to match ProductCardProps if needed
       };
 
       setCompanyProducts([newProduct, ...companyProducts]);

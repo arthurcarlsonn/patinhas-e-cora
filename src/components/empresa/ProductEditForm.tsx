@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -196,7 +195,7 @@ const ProductEditForm = ({ product, onCancel, onUpdate }: ProductEditFormProps) 
         }
       }
       
-      // Create updated product card data
+      // Create updated product card data with correct properties
       const updatedProductCard: ProductCardProps = {
         ...product,
         title: formData.title,
@@ -204,7 +203,6 @@ const ProductEditForm = ({ product, onCancel, onUpdate }: ProductEditFormProps) 
         price: parseFloat(formData.price),
         location: formData.location,
         image: mainImageUrl || product.image,
-        homeDelivery: formData.homeDelivery
       };
       
       toast({

@@ -6,11 +6,31 @@ import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import EventList from '@/components/EventList';
-import { OrgCardProps } from '@/components/OrgCard';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Eye, MapPin, Phone, Mail, Globe, Instagram, Facebook, Calendar, Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+
+// Update the OrgCardProps definition to match what's being used
+interface OrgCardProps {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  actionArea: string;
+  location: string;
+  image: string;
+  views: number;
+  contato: {
+    email: string;
+    phone: string;
+    website?: string;
+    socialMedia?: {
+      instagram?: string;
+      facebook?: string;
+    }
+  }
+}
 
 const OrgDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -43,7 +63,7 @@ const OrgDetail = () => {
             location: data.location,
             image: data.main_image_url || "https://via.placeholder.com/400x300?text=ONG",
             views: data.views || 0,
-            contact: {
+            contato: {
               email: data.email,
               phone: data.whatsapp,
               website: data.website,
@@ -52,7 +72,7 @@ const OrgDetail = () => {
           });
         }
 
-        // Increment view count
+        // Increment view count - fix the type error
         if (id) {
           try {
             await supabase.rpc('increment_views', { 
@@ -155,29 +175,29 @@ const OrgDetail = () => {
             </div>
             
             <div className="flex gap-2 flex-wrap">
-              {org.contact?.email && (
+              {org.contato?.email && (
                 <Button variant="outline" size="sm">
                   <Mail size={16} className="mr-1" />
                   Contato
                 </Button>
               )}
               
-              {org.contact?.website && (
-                <Button variant="outline" size="sm" onClick={() => window.open(org.contact?.website, '_blank')}>
+              {org.contato?.website && (
+                <Button variant="outline" size="sm" onClick={() => window.open(org.contato?.website, '_blank')}>
                   <Globe size={16} className="mr-1" />
                   Site
                 </Button>
               )}
               
-              {org.contact?.socialMedia?.instagram && (
-                <Button variant="outline" size="sm" onClick={() => window.open(`https://instagram.com/${org.contact?.socialMedia?.instagram}`, '_blank')}>
+              {org.contato?.socialMedia?.instagram && (
+                <Button variant="outline" size="sm" onClick={() => window.open(`https://instagram.com/${org.contato?.socialMedia?.instagram}`, '_blank')}>
                   <Instagram size={16} className="mr-1" />
                   Instagram
                 </Button>
               )}
               
-              {org.contact?.socialMedia?.facebook && (
-                <Button variant="outline" size="sm" onClick={() => window.open(`https://facebook.com/${org.contact?.socialMedia?.facebook}`, '_blank')}>
+              {org.contato?.socialMedia?.facebook && (
+                <Button variant="outline" size="sm" onClick={() => window.open(`https://facebook.com/${org.contato?.socialMedia?.facebook}`, '_blank')}>
                   <Facebook size={16} className="mr-1" />
                   Facebook
                 </Button>
@@ -208,25 +228,25 @@ const OrgDetail = () => {
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Contato</h3>
                   
-                  {org.contact?.email && (
+                  {org.contato?.email && (
                     <div className="flex items-center">
                       <Mail size={20} className="mr-2 text-pet-purple" />
-                      <span>{org.contact.email}</span>
+                      <span>{org.contato.email}</span>
                     </div>
                   )}
                   
-                  {org.contact?.phone && (
+                  {org.contato?.phone && (
                     <div className="flex items-center">
                       <Phone size={20} className="mr-2 text-pet-purple" />
-                      <span>{org.contact.phone}</span>
+                      <span>{org.contato.phone}</span>
                     </div>
                   )}
                   
-                  {org.contact?.website && (
+                  {org.contato?.website && (
                     <div className="flex items-center">
                       <Globe size={20} className="mr-2 text-pet-purple" />
-                      <a href={org.contact.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                        {org.contact.website.replace(/^https?:\/\//, '')}
+                      <a href={org.contato.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        {org.contato.website.replace(/^https?:\/\//, '')}
                       </a>
                     </div>
                   )}
@@ -247,7 +267,7 @@ const OrgDetail = () => {
             <EventList 
               title="Eventos da ONG"
               viewAllLink={`/eventos`}
-              organizationId={id}
+              filter={`organization_id.eq.${id}`}
               limit={4}
             />
           </TabsContent>
