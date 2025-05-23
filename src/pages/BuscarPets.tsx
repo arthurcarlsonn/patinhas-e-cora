@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Loader2 } from 'lucide-react';
 import PetCard, { PetCardProps } from '@/components/PetCard';
 import { supabase } from '@/integrations/supabase/client';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const BuscarPets = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,6 +20,9 @@ const BuscarPets = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [filteredPets, setFilteredPets] = useState<PetCardProps[]>([]);
+  
+  const location = useLocation();
+  const navigate = useNavigate();
   
   const filterOptions = [
     { label: 'Perdidos', value: 'perdido' },
@@ -42,7 +46,28 @@ const BuscarPets = () => {
     { id: 'avistado', label: 'Avistados' },
   ];
 
-  // Função para buscar pets no Supabase
+  // Parse query parameters when the page loads
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const query = params.get('q') || '';
+    const status = params.get('status') || '';
+    const type = params.get('type') || '';
+    
+    setSearchTerm(query);
+    
+    // Set active filters based on URL params
+    const newFilters: string[] = [];
+    if (status) newFilters.push(status);
+    if (type) newFilters.push(type);
+    setActiveFilters(newFilters);
+    
+    // Set current tab based on status
+    if (status && tabs.some(tab => tab.id === status)) {
+      setCurrentTab(status);
+    }
+  }, [location.search]);
+
+  // Fetch pets from Supabase
   useEffect(() => {
     const fetchPets = async () => {
       setIsLoading(true);
@@ -96,12 +121,12 @@ const BuscarPets = () => {
     fetchPets();
   }, []);
 
-  // Aplicar filtros sempre que pets, searchTerm, activeFilters ou currentTab mudarem
+  // Apply filters whenever pets, searchTerm, activeFilters, or currentTab change
   useEffect(() => {
     const applyFilters = () => {
       let filtered = [...pets];
       
-      // Filtro por pesquisa de texto
+      // Filter by text search
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         filtered = filtered.filter(pet => 
@@ -113,15 +138,15 @@ const BuscarPets = () => {
         );
       }
       
-      // Filtro por tab (status)
+      // Filter by tab (status)
       if (currentTab !== 'todos') {
         filtered = filtered.filter(pet => pet.status === currentTab);
       }
       
-      // Filtros ativos (tags)
+      // Apply active filters (tags)
       if (activeFilters.length > 0) {
         filtered = filtered.filter(pet => {
-          // Verifica se algum dos filtros ativos corresponde a alguma propriedade do pet
+          // Check if any active filter matches any pet property
           return activeFilters.some(filter => 
             pet.status === filter || 
             pet.type === filter ||
@@ -143,17 +168,43 @@ const BuscarPets = () => {
         ? prev.filter(f => f !== filter)
         : [...prev, filter]
     );
+    
+    // Update URL with new filters
+    updateURL();
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // A busca já é aplicada pelo useEffect, não precisamos fazer nada aqui
+    // Update URL with search term
+    updateURL();
+  };
+  
+  const updateURL = () => {
+    const params = new URLSearchParams();
+    
+    if (searchTerm) {
+      params.append('q', searchTerm);
+    }
+    
+    // Add status from currentTab if not 'todos'
+    if (currentTab !== 'todos') {
+      params.append('status', currentTab);
+    }
+    
+    // Add type filters
+    const typeFilters = activeFilters.filter(f => f === 'Cachorro' || f === 'Gato');
+    if (typeFilters.length > 0) {
+      params.append('type', typeFilters[0]); // We only support one type filter at a time
+    }
+    
+    navigate(`/buscar-pets?${params.toString()}`);
   };
   
   const clearFilters = () => {
     setSearchTerm('');
     setActiveFilters([]);
     setCurrentTab('todos');
+    navigate('/buscar-pets');
   };
 
   return (
@@ -186,6 +237,9 @@ const BuscarPets = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Button type="submit" className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-pet-purple hover:bg-pet-lightPurple">
+                  Buscar
+                </Button>
               </div>
             </form>
           </div>
@@ -220,7 +274,17 @@ const BuscarPets = () => {
         <section className="py-8 bg-pet-softGray">
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
-              <Tabs defaultValue="todos" onValueChange={setCurrentTab} className="space-y-8">
+              <Tabs value={currentTab} onValueChange={(value) => {
+                setCurrentTab(value);
+                // Update URL when changing tabs
+                const params = new URLSearchParams(location.search);
+                if (value !== 'todos') {
+                  params.set('status', value);
+                } else {
+                  params.delete('status');
+                }
+                navigate(`/buscar-pets?${params.toString()}`);
+              }} className="space-y-8">
                 <div className="flex justify-center">
                   <TabsList className="bg-white">
                     {tabs.map(tab => (

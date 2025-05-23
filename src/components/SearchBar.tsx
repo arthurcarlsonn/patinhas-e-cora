@@ -3,10 +3,13 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from '@/components/ui/sonner';
 
 const SearchBar = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('');
+  const navigate = useNavigate();
 
   const filters = [
     'Perdidos',
@@ -26,8 +29,48 @@ const SearchBar = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Map filters to their corresponding values in the database
+    let status = '';
+    let type = '';
+    
+    // Process active filter
+    if (activeFilter === 'Perdidos') {
+      status = 'perdido';
+    } else if (activeFilter === 'Encontrados') {
+      status = 'encontrado';
+    } else if (activeFilter === 'Para adoção') {
+      status = 'adocao';
+    } else if (activeFilter === 'Cachorros') {
+      type = 'Cachorro';
+    } else if (activeFilter === 'Gatos') {
+      type = 'Gato';
+    }
+    
+    // Build query params
+    const params = new URLSearchParams();
+    if (searchTerm) {
+      params.append('q', searchTerm);
+    }
+    if (status) {
+      params.append('status', status);
+    }
+    if (type) {
+      params.append('type', type);
+    }
+    
+    const queryString = params.toString();
+    
+    // Check if we have any search parameters
+    if (queryString) {
+      navigate(`/buscar-pets?${queryString}`);
+    } else if (searchTerm === '' && activeFilter === '') {
+      toast.info('Por favor, digite um termo de busca ou selecione um filtro');
+    } else {
+      navigate('/buscar-pets');
+    }
+    
     console.log('Buscando por:', searchTerm, 'com filtro:', activeFilter);
-    // Aqui implementaria a lógica de busca
   };
 
   return (
