@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Eye, MapPin, Heart, Share2, FileText } from 'lucide-react';
+import { Eye, MapPin, Heart, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
 import { shareContent } from '@/utils/shareUtils';
@@ -38,7 +38,6 @@ const OrgCard = ({
     e.preventDefault();
     e.stopPropagation();
     setIsFavorite(!isFavorite);
-    console.log(`${isFavorite ? 'Removed from' : 'Added to'} favorites: ${name}`);
     
     // In a real app with Supabase integration, we would save this to the user's favorites
     const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
@@ -80,8 +79,8 @@ const OrgCard = ({
 
   return (
     <Link to={`/ong/${id}`}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 hover:scale-102 h-full">
-        <div className="relative h-48">
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full">
+        <div className="relative w-full h-48">
           <img
             src={image}
             alt={name}
@@ -98,7 +97,6 @@ const OrgCard = ({
             {category}
           </Badge>
           
-          {/* Área de atuação */}
           {areaAtuacao && (
             <Badge 
               className="absolute bottom-2 right-2 bg-white/80 text-gray-700 border border-gray-300"
@@ -108,46 +106,45 @@ const OrgCard = ({
           )}
         </div>
         
-        <CardHeader className="pb-2">
-          <h3 className="font-medium text-lg line-clamp-2">{name}</h3>
-        </CardHeader>
-        
-        <CardContent className="pb-2">
-          <div className="flex items-center text-sm text-gray-500">
-            <MapPin size={14} className="mr-1" />
-            <span>{location}</span>
+        <div className="bg-gray-100 p-4">
+          <h3 className="font-medium text-lg mb-2 line-clamp-1">{name}</h3>
+          
+          <div className="flex items-center text-sm text-gray-600 mb-3">
+            <MapPin size={16} className="mr-1 text-pet-purple" />
+            <span className="line-clamp-1">{location}</span>
           </div>
-        </CardContent>
-        
-        <CardFooter className="pt-0 flex justify-between items-center">
-          <div className="flex items-center text-sm text-gray-500">
-            <Eye size={14} className="mr-1" />
-            <span>{views} visualizações</span>
+          
+          <div className="flex justify-between items-center mt-2">
+            <div className="flex items-center text-sm text-gray-600">
+              <Eye size={16} className="mr-1 text-pet-purple" />
+              <span>{views} visualizações</span>
+            </div>
+            
+            <div className="flex space-x-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-1 h-8 w-8 hover:bg-transparent"
+                onClick={handleFavorite}
+                aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+              >
+                <Heart 
+                  size={18} 
+                  className={isFavorite ? "text-red-500 fill-red-500" : "text-pet-purple hover:text-red-500"} 
+                />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-1 h-8 w-8 hover:bg-transparent"
+                onClick={handleShare}
+                aria-label="Compartilhar"
+              >
+                <Share2 size={18} className="text-pet-purple hover:text-blue-500" />
+              </Button>
+            </div>
           </div>
-          <div className="flex space-x-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="p-1 h-8 w-8"
-              onClick={handleFavorite}
-              aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-            >
-              <Heart 
-                size={16} 
-                className={isFavorite ? "text-red-500 fill-red-500" : "text-gray-500 hover:text-red-500"} 
-              />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="p-1 h-8 w-8"
-              onClick={handleShare}
-              aria-label="Compartilhar"
-            >
-              <Share2 size={16} className="text-gray-500 hover:text-blue-500" />
-            </Button>
-          </div>
-        </CardFooter>
+        </div>
       </Card>
     </Link>
   );

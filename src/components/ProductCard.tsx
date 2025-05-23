@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Eye, MapPin, Heart, Share2, Truck } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -23,6 +23,12 @@ export interface ProductCardProps {
     telefone: string;
     email: string;
   };
+  homeDelivery?: boolean;
+  business?: {
+    id: string;
+    name: string;
+    verified: boolean;
+  };
 }
 
 const ProductCard = ({ 
@@ -33,7 +39,7 @@ const ProductCard = ({
   price, 
   location, 
   views,
-  atendimentoDomicilio
+  homeDelivery
 }: ProductCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -46,7 +52,6 @@ const ProductCard = ({
     e.preventDefault();
     e.stopPropagation();
     setIsFavorite(!isFavorite);
-    console.log(`${isFavorite ? 'Removed from' : 'Added to'} favorites: ${title}`);
     
     // In a real app with Supabase integration, we would save this to the user's favorites
     const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
@@ -88,8 +93,8 @@ const ProductCard = ({
 
   return (
     <Link to={`/produto/${id}`}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 hover:scale-102 h-full">
-        <div className="relative h-48">
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full">
+        <div className="relative w-full h-48">
           <img
             src={image}
             alt={title}
@@ -100,19 +105,13 @@ const ProductCard = ({
               target.src = `https://via.placeholder.com/300x200?text=Produto`;
             }}
           />
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-            <p className="text-white font-bold">{formattedPrice}</p>
-          </div>
-          
-          {/* Badge para categoria */}
           <Badge 
             className="absolute top-2 right-2 bg-blue-100 text-blue-800 border-blue-200"
           >
             {category}
           </Badge>
           
-          {/* Badge para entrega */}
-          {atendimentoDomicilio && (
+          {homeDelivery && (
             <Badge 
               className="absolute top-10 right-2 bg-green-100 text-green-800 border-green-200"
             >
@@ -122,46 +121,48 @@ const ProductCard = ({
           )}
         </div>
         
-        <CardHeader className="pb-2">
-          <h3 className="font-medium text-lg line-clamp-2">{title}</h3>
-        </CardHeader>
-        
-        <CardContent className="pb-2">
-          <div className="flex items-center text-sm text-gray-500">
-            <MapPin size={14} className="mr-1" />
-            <span>{location}</span>
+        <div className="bg-gray-100 p-4">
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="font-medium text-lg line-clamp-1">{title}</h3>
+            <span className="font-bold text-pet-purple">{formattedPrice}</span>
           </div>
-        </CardContent>
-        
-        <CardFooter className="pt-0 flex justify-between items-center">
-          <div className="flex items-center text-sm text-gray-500">
-            <Eye size={14} className="mr-1" />
-            <span>{views} visualizações</span>
+          
+          <div className="flex items-center text-sm text-gray-600 mb-3">
+            <MapPin size={16} className="mr-1 text-pet-purple" />
+            <span className="line-clamp-1">{location}</span>
           </div>
-          <div className="flex space-x-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="p-1 h-8 w-8"
-              onClick={handleFavorite}
-              aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-            >
-              <Heart 
-                size={16} 
-                className={isFavorite ? "text-red-500 fill-red-500" : "text-gray-500 hover:text-red-500"} 
-              />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="p-1 h-8 w-8"
-              onClick={handleShare}
-              aria-label="Compartilhar"
-            >
-              <Share2 size={16} className="text-gray-500 hover:text-blue-500" />
-            </Button>
+          
+          <div className="flex justify-between items-center mt-2">
+            <div className="flex items-center text-sm text-gray-600">
+              <Eye size={16} className="mr-1 text-pet-purple" />
+              <span>{views} visualizações</span>
+            </div>
+            
+            <div className="flex space-x-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-1 h-8 w-8 hover:bg-transparent"
+                onClick={handleFavorite}
+                aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+              >
+                <Heart 
+                  size={18} 
+                  className={isFavorite ? "text-red-500 fill-red-500" : "text-pet-purple hover:text-red-500"} 
+                />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-1 h-8 w-8 hover:bg-transparent"
+                onClick={handleShare}
+                aria-label="Compartilhar"
+              >
+                <Share2 size={18} className="text-pet-purple hover:text-blue-500" />
+              </Button>
+            </div>
           </div>
-        </CardFooter>
+        </div>
       </Card>
     </Link>
   );

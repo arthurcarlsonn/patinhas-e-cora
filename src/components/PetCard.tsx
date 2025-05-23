@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Eye, MapPin, Clock, Heart, Share2 } from 'lucide-react';
+import { Eye, MapPin, Heart, Share2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { shareContent } from '@/utils/shareUtils';
@@ -11,7 +11,7 @@ export interface PetCardProps {
   id: string;
   name: string;
   type: string;
-  status: 'perdido' | 'encontrado' | 'adocao';
+  status: 'perdido' | 'encontrado' | 'adocao' | 'avistado';
   image: string;
   location: string;
   timeRegistered: string;
@@ -33,12 +33,14 @@ const statusColors = {
   perdido: 'bg-red-100 text-red-800 border-red-200',
   encontrado: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   adocao: 'bg-green-100 text-green-800 border-green-200',
+  avistado: 'bg-blue-100 text-blue-800 border-blue-200',
 };
 
 const statusLabels = {
   perdido: 'Perdido',
   encontrado: 'Encontrado',
   adocao: 'Para Adoção',
+  avistado: 'Avistado',
 };
 
 const PetCard = ({ 
@@ -62,7 +64,6 @@ const PetCard = ({
     e.preventDefault();
     e.stopPropagation();
     setIsFavorite(!isFavorite);
-    console.log(`${isFavorite ? 'Removed from' : 'Added to'} favorites: ${name}`);
     
     // In a real app with Supabase integration, we would save this to the user's favorites
     const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
@@ -96,7 +97,6 @@ const PetCard = ({
 
   // Handle card click - navigate to the pet detail page
   const handleCardClick = () => {
-    console.log("Navigating to pet detail with ID:", id);
     navigate(`/pet/${id}`);
   };
 
@@ -111,10 +111,10 @@ const PetCard = ({
 
   return (
     <Card 
-      className="overflow-hidden hover:shadow-lg transition-shadow duration-300 hover:scale-102 h-full cursor-pointer" 
+      className="overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full cursor-pointer" 
       onClick={handleCardClick}
     >
-      <div className="relative h-48">
+      <div className="relative w-full h-48">
         <img
           src={image}
           alt={name}
@@ -130,79 +130,53 @@ const PetCard = ({
         >
           {statusLabels[status]}
         </Badge>
-        
-        {/* Add gender badge if available */}
-        {genero && (
-          <Badge 
-            className="absolute bottom-2 right-2 bg-white/80 text-gray-700 border border-gray-300"
-          >
-            {genero === 'Macho' ? 
-              <span className="text-blue-500">♂</span> : 
-              <span className="text-pink-500">♀</span>
-            }
-          </Badge>
-        )}
       </div>
       
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <h3 className="font-medium text-lg">{name}</h3>
-          <Badge variant="outline">{type}</Badge>
+      <div className="bg-gray-100 p-4">
+        <h3 className="font-medium text-lg mb-1 line-clamp-1">{name}</h3>
+        
+        <div className="flex flex-wrap gap-2 mb-2">
+          <Badge variant="outline" className="bg-white">{type}</Badge>
+          {raca && <Badge variant="outline" className="bg-white">{raca}</Badge>}
+          {porte && <Badge variant="outline" className="bg-white">Porte {porte}</Badge>}
         </div>
-        {(raca || porte) && (
-          <div className="flex flex-wrap gap-1 mt-1">
-            {raca && <span className="text-xs text-gray-600">{raca}</span>}
-            {raca && porte && <span className="text-xs text-gray-400 mx-1">•</span>}
-            {porte && <span className="text-xs text-gray-600">Porte {porte}</span>}
+        
+        <div className="flex items-center text-sm text-gray-600 mb-1">
+          <MapPin size={16} className="mr-1 text-pet-purple" />
+          <span className="line-clamp-1">{location}</span>
+        </div>
+        
+        <div className="flex justify-between items-center mt-3">
+          <div className="flex items-center text-sm text-gray-600">
+            <Eye size={16} className="mr-1 text-pet-purple" />
+            <span>{views} visualizações</span>
           </div>
-        )}
-      </CardHeader>
-      
-      <CardContent className="pb-2">
-        <div className="flex items-center text-sm text-gray-500 mb-1">
-          <MapPin size={14} className="mr-1" />
-          <span>{location}</span>
-        </div>
-        <div className="flex items-center text-sm text-gray-500">
-          <Clock size={14} className="mr-1" />
-          <span>{timeRegistered}</span>
-        </div>
-        {idade && (
-          <div className="mt-1 text-sm text-gray-500">
-            Idade: {idade}
+          
+          <div className="flex space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="p-1 h-8 w-8 hover:bg-transparent"
+              onClick={handleFavorite}
+              aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+            >
+              <Heart 
+                size={18} 
+                className={isFavorite ? "text-red-500 fill-red-500" : "text-pet-purple hover:text-red-500"} 
+              />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="p-1 h-8 w-8 hover:bg-transparent"
+              onClick={handleShare}
+              aria-label="Compartilhar"
+            >
+              <Share2 size={18} className="text-pet-purple hover:text-blue-500" />
+            </Button>
           </div>
-        )}
-      </CardContent>
-      
-      <CardFooter className="pt-0 flex justify-between items-center">
-        <div className="flex items-center text-sm text-gray-500">
-          <Eye size={14} className="mr-1" />
-          <span>{views} visualizações</span>
         </div>
-        <div className="flex space-x-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="p-1 h-8 w-8"
-            onClick={handleFavorite}
-            aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-          >
-            <Heart 
-              size={16} 
-              className={isFavorite ? "text-red-500 fill-red-500" : "text-gray-500 hover:text-red-500"} 
-            />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="p-1 h-8 w-8"
-            onClick={handleShare}
-            aria-label="Compartilhar"
-          >
-            <Share2 size={16} className="text-gray-500 hover:text-blue-500" />
-          </Button>
-        </div>
-      </CardFooter>
+      </div>
     </Card>
   );
 };
