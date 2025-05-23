@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -158,14 +157,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithGoogle = async () => {
     setLoading(true);
     try {
+      // Get the current URL origin for redirects
+      const origin = window.location.origin;
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent'
+            prompt: 'consent',
           },
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${origin}/auth-callback`,
+          // Add the userType as a state parameter to preserve after redirect
+          scopes: 'email profile',
         }
       });
       
@@ -177,7 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: error.message || "Ocorreu um erro ao tentar entrar com Google",
         variant: "destructive",
       });
-      console.error(error);
+      console.error("Google login error:", error);
     } finally {
       setLoading(false);
     }
