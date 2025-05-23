@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -257,15 +256,14 @@ const EmpresaProductForm = ({ onSuccess }: EmpresaProductFormProps) => {
       </div>
       
       <div>
-        <Label htmlFor="productImage">Imagens do Produto</Label>
+        <Label htmlFor="product-images">Imagens do produto</Label>
         <MediaUpload
-          id="productImage"
-          label="Selecione até 5 imagens"
+          id="product-images"
+          label="Imagens do produto"
           accept="image/*"
           multiple={true}
           onChange={setProductImages}
           value={productImages}
-          maxFiles={5}
         />
       </div>
       
