@@ -11,6 +11,7 @@ interface AuthContextType {
   userType: 'personal' | 'company' | 'ngo' | null;
   signUp: (email: string, password: string, type: 'personal' | 'company' | 'ngo', metadata: object) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   loading: boolean;
 }
@@ -153,6 +154,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     }
   };
+  
+  const signInWithGoogle = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          },
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      
+      if (error) throw error;
+      
+    } catch (error: any) {
+      toast({
+        title: "Erro ao entrar com Google",
+        description: error.message || "Ocorreu um erro ao tentar entrar com Google",
+        variant: "destructive",
+      });
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const signOut = async () => {
     setLoading(true);
@@ -193,6 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userType,
         signUp,
         signIn,
+        signInWithGoogle,
         signOut,
         loading
       }}
